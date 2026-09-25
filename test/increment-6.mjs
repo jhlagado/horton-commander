@@ -181,7 +181,7 @@ function createMachine({
   }
 
   function waitFor(description, predicate, start = transcript.length) {
-    const sampleSlice = 512;
+    const sampleSlice = 128;
     for (let slice = 0; slice < (stackTracking ? trackedStepLimit / sampleSlice : 20_000); slice += 1) {
       const reason = stackTracking
         ? cpu.run_slice(sampleSlice, 20_000)
@@ -340,7 +340,7 @@ function createMachine({
         horton: {
           ...horton,
           sampledLowWaterSp: `0x${minHortonStackPointer.toString(16).padStart(4, "0")}`,
-          sampleMethod: "512-instruction slices plus persistent stack canary",
+          sampleMethod: "128-instruction slices plus persistent stack canary",
         },
         bdos: {
           ...bdos,
@@ -449,6 +449,7 @@ const capacityProof = { scenarios: [] };
     assert.ok(machine.terminal.text().includes("LAST DISK RECORD"), machine.terminal.text());
     const viewerRecords = machine.cpu.read_ram(viewerRecordsAddress, 2);
     assert.equal(viewerRecords[0] | (viewerRecords[1] << 8), 16_000);
+    machine.pumpSlices(4, "maximum-size viewer footer settles before Escape");
     machine.send([27], "return from the maximum-size viewer");
     machine.waitPanel("maximum-size viewer returns to panels");
     machine.send(ascii("q"), "return to CCP after capacity proof");
@@ -542,7 +543,7 @@ const capacityProof = { scenarios: [] };
         canary: stack.bdos,
       },
       instructionsSampled: machine.trackedSteps,
-      samplingIntervalInstructions: 512,
+      samplingIntervalInstructions: 128,
       tstatesSampled: machine.trackedTstates.toString(),
       workload: "129-record copy, read-back verification, and panel refresh",
     };

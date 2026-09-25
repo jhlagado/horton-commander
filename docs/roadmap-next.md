@@ -1,11 +1,11 @@
 # Horton Commander: next phase
 
-Increments 0–10 are complete and accepted. The current program browses four
-drives, shows the selected file's logical record count, views and manages
-files, and documents a restart-based CP/M handoff to the existing editor. The
-[accepted roadmap](roadmap.md) records that work. The hosted Triptych preview
-still boots the increment 9 binary; the increment 10 preview is built locally
-but has not been published.
+Increments 0–11 are complete and accepted. The current program browses four drives,
+shows the selected file's logical record count, views and manages files, and
+documents a restart-based CP/M handoff to the existing editor. The
+[accepted roadmap](roadmap.md) records the accepted work. The hosted Triptych
+preview still boots the increment 9 binary; the increment 11 preview is built
+locally but has not been published.
 
 The next phase adds useful file information and builds toward editing within
 Horton. It remains a practical CP/M tool, not a goal of complete NC feature
@@ -13,12 +13,6 @@ parity. The order below keeps each capability small enough to test against the
 current machine and file-safety rules.
 
 ## Planned increments
-
-### 11. Add a read-only hexadecimal view
-
-Add a hexadecimal mode beside the existing text viewer. Show offsets, byte
-values and printable characters while keeping the file unchanged. Test paging,
-empty files and files that span multiple extents.
 
 ### 12. Prototype editing inside Horton
 

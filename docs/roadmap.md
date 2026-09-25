@@ -1,15 +1,15 @@
 # Horton Commander roadmap
 
-Status: increments 0–10 are accepted after their Triptych gates and
+Status: increments 0–11 are accepted after their Triptych gates and
 independent Astra reviews. The current target assumes A: through D: are
 attached and usable. Increment 9 adds explicit panel drive selection;
-increment 10 shows selected-file size as a logical record count. The current
-`HORTON.COM` is 11,355 bytes, 361 bytes larger than increment 9. Increment 7
-proves the native view/copy/Edit/CCP resume workflow and records build pins.
-Increment 6 records capacity and stack evidence; Horton-specific runtime BIOS
-fault injection and full-size copy remain outside the qualified surface.
-Earlier review fixes and their test evidence remain in the individual
-increment records.
+increment 10 shows selected-file size as a logical record count; increment 11
+adds a read-only hexadecimal view. The current `HORTON.COM` is 12,045 bytes,
+690 bytes larger than increment 10. Increment 7 proves the native
+view/copy/Edit/CCP resume workflow and records build pins. Increment 6 records
+capacity and stack evidence; Horton-specific runtime BIOS fault injection and
+full-size copy remain outside the qualified surface. Earlier review fixes and
+their test evidence remain in the individual increment records.
 
 ## Release aim
 
@@ -262,6 +262,17 @@ record may contain padding. The display does not claim an exact byte length or
 a date. The executable is 11,355 bytes, an increase of 361 bytes over
 increment 9. Evidence is recorded in
 `docs/increments/increment-10.md`.
+
+### 11. Add a read-only hexadecimal view
+
+Status: accepted after `npm run check` passed increments 0–11 and independent
+Astra review found no blockers. Press `H` in the text viewer to show sixteen
+rows of sixteen bytes with six-digit offsets and printable characters; `T`
+returns to text at the same record. Navigation covers files spanning CP/M
+extents, and browsing leaves all drive images unchanged. CP/M record padding
+means the last record's exact byte length is unknown. The executable is 12,045
+bytes, an increase of 690 bytes over increment 10. Evidence is recorded in
+`docs/increments/increment-11.md`.
 
 ## Deferred unless evidence promotes them
 

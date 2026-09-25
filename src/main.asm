@@ -374,6 +374,7 @@ VCLR:
     XOR A
     LD (VEOF),A
     LD (VERR),A
+    LD (VMODE),A
     CALL VIEWDRAW
 VIEWKEY:
     CALL READKEY
@@ -384,7 +385,15 @@ VIEWKEY:
     CP 'Q'
     JP Z,VIEWRET
     CP '<'
-    JR Z,VIEWBACK
+    JP Z,VIEWBACK
+    CP 'h'
+    JP Z,VHEXSW
+    CP 'H'
+    JP Z,VHEXSW
+    CP 't'
+    JP Z,VTXTSW
+    CP 'T'
+    JP Z,VTXTSW
     CP ' '
     JR Z,VIEWFWD
     CP '>'
@@ -394,21 +403,43 @@ VIEWFWD:
     OR A
     JR NZ,VIEWKEY
     LD HL,(VSTART)
+    LD (VPREV),HL
+    LD A,(VMODE)
+    OR A
+    JR Z,VFWDTXT
+    LD DE,2
+    JR VFWDADD
+VFWDTXT:
     LD DE,9
+VFWDADD:
     ADD HL,DE
+    PUSH HL
     LD DE,(VSIZE)
     OR A
     SBC HL,DE
+    POP HL
     JR NC,VIEWKEY
-    LD HL,(VSTART)
-    LD (VPREV),HL
-    LD DE,9
-    ADD HL,DE
     LD (VSTART),HL
     XOR A
     LD (VEOF),A
+    LD A,(VMODE)
+    OR A
+    JR NZ,VFWDHEX
     CALL VIEWDRAW
     JR VIEWKEY
+VFWDHEX:
+    CALL HEXDRAW
+    JR VIEWKEY
+VHEXSW:
+    LD A,1
+    LD (VMODE),A
+    CALL HEXDRAW
+    JP VIEWKEY
+VTXTSW:
+    XOR A
+    LD (VMODE),A
+    CALL VIEWDRAW
+    JP VIEWKEY
 ; Escape is also the first byte of Triptych's arrow keys. Poll briefly for the
 ; rest of a CSI sequence. BDOS function 11 buffers a pending byte for READKEY.
 VIEWESC:
@@ -427,24 +458,31 @@ VIEWPOLL:
 VIEWSEQ:
     CALL READKEY
     CP '['
-    JR NZ,VIEWKEY
+    JP NZ,VIEWKEY
     CALL READKEY
     CP 'A'
-    JR Z,VIEWBACK
+    JP Z,VIEWBACK
     CP 'D'
-    JR Z,VIEWBACK
+    JP Z,VIEWBACK
     CP 'B'
-    JR Z,VIEWFWD
+    JP Z,VIEWFWD
     CP 'C'
-    JR Z,VIEWFWD
-    JR VIEWKEY
+    JP Z,VIEWFWD
+    JP VIEWKEY
 VIEWBACK:
     LD HL,(VSTART)
     LD A,H
     OR L
     JP Z,VIEWKEY
     LD HL,(VSTART)
+    LD A,(VMODE)
+    OR A
+    JR Z,VBBTXT
+    LD DE,2
+    JR VBBSUB
+VBBTXT:
     LD DE,9
+VBBSUB:
     OR A
     SBC HL,DE
     JR NC,VBSET
@@ -454,7 +492,13 @@ VBSET:
     LD (VSTART),HL
     XOR A
     LD (VEOF),A
+    LD A,(VMODE)
+    OR A
+    JR NZ,VBBHEX
     CALL VIEWDRAW
+    JP VIEWKEY
+VBBHEX:
+    CALL HEXDRAW
     JP VIEWKEY
 VIEWRET:
     LD A,0
@@ -1123,6 +1167,8 @@ VIEWDRAW:
     LD HL,VFCB+1
     LD (NAMEPTR),HL
     CALL PRINTNAM
+    LD DE,VTEXTTAG
+    CALL PRINTS
     LD DE,CRLF
     CALL PRINTS
     LD DE,BORDER
@@ -1225,9 +1271,248 @@ VWEOFMSG:
     LD DE,VEOFMSG
 VWSTAT:
     CALL PRINTS
+    LD A,(VMODE)
+    OR A
+    JR NZ,VWHFOOT
     LD DE,VFOOT
     CALL PRINTS
     RET
+VWHFOOT:
+    LD DE,HFOOT
+    CALL PRINTS
+    RET
+
+; Show two logical records as sixteen addressed rows. CP/M exposes record
+; length, not the unpadded byte length of the final record.
+HEXDRAW:
+    LD DE,CLEAR
+    CALL PRINTS
+    LD DE,VTITLE
+    CALL PRINTS
+    LD DE,VHEAD1
+    CALL PRINTS
+    LD A,(VFCB)
+    ADD A,64
+    CALL PUTCH
+    LD DE,VHEAD2
+    CALL PRINTS
+    LD HL,VFCB+1
+    LD (NAMEPTR),HL
+    CALL PRINTNAM
+    LD DE,VHEXTAG
+    CALL PRINTS
+    LD DE,CRLF
+    CALL PRINTS
+    LD DE,BORDER
+    CALL PRINTS
+    LD HL,(VSTART)
+    LD (VREC),HL
+    XOR A
+    LD (VROW),A
+    LD (VERR),A
+    LD (VEOF),A
+
+HEXLOOP:
+    LD A,(VROW)
+    CP 16
+    JP NC,HEXEND
+    LD A,(VEOF)
+    OR A
+    JP NZ,HEXBLANK
+    LD A,(VROW)
+    AND 7
+    JP NZ,HEXDATA
+    LD HL,(VREC)
+    LD DE,(VSIZE)
+    OR A
+    SBC HL,DE
+    JP NC,HEXEOD
+    LD HL,(VREC)
+    LD (VFCB+33),HL
+    XOR A
+    LD (VFCB+35),A
+    LD DE,DMA
+    LD C,26
+    CALL 5
+    LD DE,VFCB
+    LD C,33
+    CALL 5
+    OR A
+    JR Z,HEXDATA
+    CP 1
+    JR Z,HEXEOD
+    LD (VERR),A
+HEXEOD:
+    LD A,1
+    LD (VEOF),A
+    JP HEXBLANK
+
+HEXDATA:
+    CALL HEXADDR
+    LD A,' '
+    CALL PUTCH
+    LD A,(VROW)
+    AND 7
+    RLCA
+    RLCA
+    RLCA
+    RLCA
+    LD E,A
+    LD D,0
+    LD HL,DMA
+    ADD HL,DE
+    LD B,16
+HEXBYTES:
+    LD A,(HL)
+    CALL HEXBYTE
+    LD A,' '
+    CALL PUTCH
+    INC HL
+    DJNZ HEXBYTES
+    LD A,'|'
+    CALL PUTCH
+    LD DE,16
+    OR A
+    SBC HL,DE
+    LD B,16
+HEXASCII:
+    LD A,(HL)
+    CP 32
+    JR C,HEXDOT
+    CP 127
+    JR NC,HEXDOT
+    JR HXASOUT
+HEXDOT:
+    LD A,'.'
+HXASOUT:
+    CALL PUTCH
+    INC HL
+    DJNZ HEXASCII
+    LD A,'|'
+    CALL PUTCH
+    LD DE,CRLF
+    CALL PRINTS
+    JR HEXNEXT
+
+HEXBLANK:
+    LD B,73
+HXBLLOOP:
+    LD A,' '
+    CALL PUTCH
+    DJNZ HXBLLOOP
+    LD DE,CRLF
+    CALL PRINTS
+
+HEXNEXT:
+    LD A,(VROW)
+    INC A
+    LD (VROW),A
+    CP 8
+    JR Z,HEXINC
+    CP 16
+    JP NC,HEXINC
+    JP HEXLOOP
+HEXINC:
+    LD HL,(VREC)
+    INC HL
+    LD (VREC),HL
+    LD DE,(VSIZE)
+    OR A
+    SBC HL,DE
+    JP C,HEXLOOP
+    LD A,1
+    LD (VEOF),A
+    JP HEXLOOP
+
+HEXEND:
+    LD DE,BORDER
+    CALL PRINTS
+    LD A,(VERR)
+    OR A
+    JR NZ,HEXERR
+    LD A,(VEOF)
+    OR A
+    JR NZ,HEXEOF
+    LD DE,HSTATUS
+    JR HEXSTAT
+HEXERR:
+    LD DE,VERRMSG
+    JR HEXSTAT
+HEXEOF:
+    LD DE,VEOFMSG
+HEXSTAT:
+    CALL PRINTS
+    LD DE,HFOOT
+    CALL PRINTS
+    RET
+
+; Print the six-digit byte offset for VREC:VROW. CP/M random records are
+; 128 bytes, so shifting the record number left seven gives its byte offset.
+HEXADDR:
+    LD HL,(VREC)
+    XOR A
+    ADD HL,HL
+    RLA
+    ADD HL,HL
+    RLA
+    ADD HL,HL
+    RLA
+    ADD HL,HL
+    RLA
+    ADD HL,HL
+    RLA
+    ADD HL,HL
+    RLA
+    ADD HL,HL
+    RLA
+    LD (HADDR),HL
+    LD (HADDR+2),A
+    LD A,(VROW)
+    AND 7
+    RLCA
+    RLCA
+    RLCA
+    RLCA
+    LD B,A
+    LD HL,(HADDR)
+    LD A,L
+    ADD A,B
+    LD L,A
+    LD A,H
+    ADC A,0
+    LD H,A
+    LD A,(HADDR+2)
+    ADC A,0
+    LD (HADDR),HL
+    LD (HADDR+2),A
+    LD A,(HADDR+2)
+    CALL HEXBYTE
+    LD A,(HADDR+1)
+    CALL HEXBYTE
+    LD A,(HADDR)
+    CALL HEXBYTE
+    RET
+
+; Print A as two uppercase hexadecimal digits; HEXDIG preserves the caller's
+; registers through PUTCH.
+HEXBYTE:
+    PUSH AF
+    RRCA
+    RRCA
+    RRCA
+    RRCA
+    AND $0F
+    CALL HEXDIG
+    POP AF
+    AND $0F
+HEXDIG:
+    CP 10
+    JR C,HEXDEC
+    ADD A,'A'-10
+    JP PUTCH
+HEXDEC:
+    ADD A,'0'
+    JP PUTCH
 
 ; Print B bytes from HL, replacing CP/M EOF with spaces, control bytes with
 ; spaces, and high bytes with a visible dot. PUTCH preserves the loop registers.
@@ -1509,18 +1794,26 @@ VHEAD1:
     DB " Drive $"
 VHEAD2:
     DB ": $"
+VTEXTTAG:
+    DB " [TEXT]$"
+VHEXTAG:
+    DB " [HEX]$"
 VLEFT:
     DB "|       $"
 VRIGHT:
     DB "       |$"
 VSTATUS:
     DB "Showing nine 128-byte records as wrapped text.",13,10,"$"
+HSTATUS:
+    DB "16 rows per page; final record may include padding.",13,10,"$"
 VEOFMSG:
     DB "End of file. Use < to return to the previous page.",13,10,"$"
 VERRMSG:
     DB "BDOS returned a read status; Esc returns to the panels.",13,10,"$"
 VFOOT:
-    DB "Space or >: next page   <: previous page   Esc/Q: return",13,10,"$"
+    DB "Space or >: next page   <: previous   H: hex   Esc/Q: return",13,10,"$"
+HFOOT:
+    DB "Space or >: next page   <: previous   T: text   Esc/Q: return",13,10,"$"
 PAD26:
     DB "                          ","$"
 CRLF:
@@ -1580,6 +1873,8 @@ SDRV:
     DB 1
 VROW:
     DB 0
+VMODE:
+    DB 0
 VEOF:
     DB 0
 VERR:
@@ -1612,6 +1907,8 @@ VPREV:
     DW 0
 VREC:
     DW 0
+HADDR:
+    DS 3
 VSIZE:
     DW 0
 SZVALID:
