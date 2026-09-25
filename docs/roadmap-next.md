@@ -1,10 +1,11 @@
 # Horton Commander: next phase
 
-Increments 0–9 are complete and accepted. The current program browses four
-drives, views and manages files, and documents a restart-based CP/M handoff to
-the existing editor. The [accepted roadmap](roadmap.md) records that work. A
-[hosted Triptych preview](https://jhlagado.github.io/triptych/?system=https%3A%2F%2Fjhlagado.github.io%2Fhorton-commander%2Freleases%2Fpreview%2Fsystem.json)
-boots the current program.
+Increments 0–10 are complete and accepted. The current program browses four
+drives, shows the selected file's logical record count, views and manages
+files, and documents a restart-based CP/M handoff to the existing editor. The
+[accepted roadmap](roadmap.md) records that work. The hosted Triptych preview
+still boots the increment 9 binary; the increment 10 preview is built locally
+but has not been published.
 
 The next phase adds useful file information and builds toward editing within
 Horton. It remains a practical CP/M tool, not a goal of complete NC feature
@@ -12,13 +13,6 @@ parity. The order below keeps each capability small enough to test against the
 current machine and file-safety rules.
 
 ## Planned increments
-
-### 10. Show selected-file size
-
-Show the selected file's CP/M record count. Each record holds 128 bytes, so an
-approximate byte or KiB figure can help readers judge its size. The final
-record may contain padding, so the display must not imply an exact byte length.
-The standard CP/M directory entry does not provide a date for this display.
 
 ### 11. Add a read-only hexadecimal view
 

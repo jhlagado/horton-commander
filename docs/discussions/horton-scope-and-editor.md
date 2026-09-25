@@ -33,7 +33,7 @@ without inheriting their full command set or key assignments.
 | Feature | Fit for Horton | Current view |
 | --- | --- | --- |
 | Two panels, active selection and drive choice | Core. This is the main improvement over working from the CCP prompt. | Implemented for the assumed A:–D: setup. The square-bracket drive cycling feels awkward. A drive-selection command on `S` is a reasonable candidate, with `D` left for Delete. |
-| File size in the panel or status line | High value and low conceptual cost. | BDOS function 35 reports the file's logical size in 128-byte records. Show the exact record count and, if space allows, an approximate byte or KiB figure. CP/M's final record can be padded, so this is not an exact byte length. |
+| File size in the panel or status line | High value and low conceptual cost. | Accepted in increment 10 as a selected-file record count in the status line. BDOS function 35 reports logical 128-byte records; CP/M's final record can be padded, so the count does not claim an exact byte length. |
 | Drive capacity and free space | Useful context when copying files or deciding which disk to use. | Consider after the file-size display. Calculate from the selected drive's public disk-parameter data. Do not assume that logical records map to a fixed physical sector size across every provider. |
 | File date | Low fit on the current CP/M 2.2 target. | The ordinary directory entry has no date field. Leave the date out unless a specific timestamp extension becomes part of the target contract. |
 | Read-only ASCII view | Core utility for source, notes and text files. | Implemented. The current view displays CR/LF bytes as spaces, so preserving line breaks is a worthwhile viewer refinement. |
@@ -47,12 +47,11 @@ without inheriting their full command set or key assignments.
 | External tools and command menu | Potentially valuable because it brings utilities into one place. | Defer a broad menu until the return path is usable. Prefer a small number of well-defined actions over pretending arbitrary COM programs can act like child processes. |
 | Disk format, disk copy and other media operations | Useful in some environments, but destructive and dependent on disk geometry. | Keep out of the initial file manager. Use separately qualified utilities and explicit platform services if this becomes a real need. |
 
-The size display should start with the CP/M record count. One record is 128
-bytes, so `N records` is exact at the record level and `about N × 128 bytes`
-is a useful approximation. A compact form such as `42 rec` can fit beside the
-selected filename, with the approximate byte count in the status line. A
-sector estimate needs the active disk profile's geometry. A date column would
-imply metadata that the current directory format does not provide.
+The first size display reports the exact CP/M record count in the status line.
+One record is 128 bytes, and the count gives a useful scale while respecting
+padding in the final record. A sector estimate needs the active disk profile's
+geometry. A date column would imply metadata that the current directory format
+does not provide.
 
 ## Viewer and editor direction
 
@@ -102,16 +101,14 @@ shipping a combined executable.
 
 ## Proposed order for the next roadmap
 
-1. Improve the panel workflow with an explicit drive selector and useful
-   record-based size information. Keep dates out of the CP/M 2.2 view.
-2. Add a read-only hexadecimal mode beside the existing ASCII viewer. Keep the
+1. Add a read-only hexadecimal mode beside the existing ASCII viewer. Keep the
    input paging bounded and prove files that cross extent boundaries.
-3. Copy the editor-engine modules into Horton for an in-process prototype.
+2. Copy the editor-engine modules into Horton for an in-process prototype.
    Measure the combined COM and transient-memory use and test return to the
    same panel state.
-4. Decide whether both repositories can build from the same pinned source
+3. Decide whether both repositories can build from the same pinned source
    modules. Resolve the license question before distribution.
-5. Reassess multi-select, search, compare and tool menus after those flows
+4. Reassess multi-select, search, compare and tool menus after those flows
    have real use evidence. Treat format and disk-copy operations as separate
    work.
 

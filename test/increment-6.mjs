@@ -487,6 +487,7 @@ const capacityProof = { scenarios: [] };
     machine.waitFor("left drive selector prompt", (fresh) =>
       fresh.includes(ascii("Select drive A-D")),
     );
+    machine.pumpSlices(4, "left drive selector prompt settles");
     machine.send(ascii("B"), "set left source panel to B:");
     machine.waitPanel("B: source file is visible");
     machine.send([9], "activate the right panel");
@@ -495,6 +496,7 @@ const capacityProof = { scenarios: [] };
     machine.waitFor("right drive selector prompt", (fresh) =>
       fresh.includes(ascii("Select drive A-D")),
     );
+    machine.pumpSlices(4, "right drive selector prompt settles");
     machine.send(ascii("C"), "set right destination panel to C:");
     machine.waitPanel("C: is the copy destination");
     machine.send([9], "activate the left source panel");

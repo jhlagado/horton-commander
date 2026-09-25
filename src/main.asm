@@ -501,6 +501,8 @@ READKEY:
 
 ; Refresh each panel independently. Each cache holds only eighteen names.
 REFRESH:
+    XOR A
+    LD (SZVALID),A
     LD HL,PAGEL
     LD (SCNSTA),HL
     LD HL,COUNTL
@@ -960,10 +962,147 @@ DRSDINV:
     JP DRAWMSG
 DRAWSTAT:
     LD DE,STATUS
+    CALL PRINTS
+    CALL DRAWSIZE
+    LD DE,CRLF
+    CALL PRINTS
+    JP DRAWFOOT
 DRAWMSG:
     CALL PRINTS
+DRAWFOOT:
     LD DE,FOOTER
     CALL PRINTS
+    RET
+
+; Show the active entry's logical CP/M record count. The selected file is
+; opened and sized only when its drive/name differs from the cached identity.
+DRAWSIZE:
+    LD A,(ACTIVE)
+    OR A
+    JR NZ,DSRSEL
+    LD A,(SELL)
+    LD B,A
+    LD A,(ROWL)
+    CP B
+    JP C,DSNONE
+    JP Z,DSNONE
+    LD A,(FCBL)
+    LD (SFCB),A
+    LD A,(SELL)
+    LD HL,CACHEL
+    JP DSCOPYN
+DSRSEL:
+    LD A,(SELR)
+    LD B,A
+    LD A,(ROWR)
+    CP B
+    JP C,DSNONE
+    JP Z,DSNONE
+    LD A,(FCBR)
+    LD (SFCB),A
+    LD A,(SELR)
+    LD HL,CACHER
+DSCOPYN:
+    LD DE,11
+    OR A
+    JR Z,DSCOPY
+DSSKIP:
+    ADD HL,DE
+    DEC A
+    JR NZ,DSSKIP
+DSCOPY:
+    LD DE,SFCB+1
+    LD BC,11
+    LDIR
+    LD HL,SFCB+12
+    LD B,24
+    XOR A
+DSCLEAR:
+    LD (HL),A
+    INC HL
+    DJNZ DSCLEAR
+
+    LD HL,SFCB
+    LD DE,SIZEKEY
+    LD B,12
+DSCMP:
+    LD A,(DE)
+    CP (HL)
+    JR NZ,DSLOAD
+    INC HL
+    INC DE
+    DJNZ DSCMP
+    LD A,(SZVALID)
+    OR A
+    JR NZ,DSPRINT
+
+DSLOAD:
+    XOR A
+    LD (SZVALID),A
+    LD DE,SFCB
+    LD C,15
+    CALL 5
+    CP $FF
+    JR Z,DSMISS
+    LD DE,SFCB
+    LD C,35
+    CALL 5
+    LD HL,SFCB+33
+    LD DE,SZCOUNT
+    LD BC,3
+    LDIR
+    LD HL,SFCB
+    LD DE,SIZEKEY
+    LD BC,12
+    LDIR
+    LD DE,SFCB
+    LD C,16
+    CALL 5
+    LD A,1
+    LD (SZVALID),A
+
+DSPRINT:
+    LD A,(SZCOUNT+2)
+    OR A
+    JR NZ,DSOVER
+    LD HL,(SZCOUNT)
+    LD DE,$2710
+    CALL DSDIGIT
+    LD DE,$03E8
+    CALL DSDIGIT
+    LD DE,$0064
+    CALL DSDIGIT
+    LD DE,$000A
+    CALL DSDIGIT
+    LD DE,$0001
+    CALL DSDIGIT
+    LD DE,SIZEREC
+    JP PRINTS
+DSOVER:
+    LD DE,SIZEOVER
+    JP PRINTS
+DSMISS:
+    LD DE,SZUNK
+    JP PRINTS
+DSNONE:
+    LD DE,SIZENONE
+    JP PRINTS
+
+; Subtract one decimal place at a time. The current four-drive image supports
+; at most 16,384 records per file, within this five-digit formatter.
+DSDIGIT:
+    LD B,0
+DSDLOOP:
+    OR A
+    SBC HL,DE
+    JR C,DSDDONE
+    INC B
+    JR DSDLOOP
+DSDDONE:
+    ADD HL,DE
+    LD A,B
+    ADD A,'0'
+    CALL PUTCH
     RET
 
 ; The viewer reads at most nine random-access CP/M records per page. Each
@@ -1215,7 +1354,15 @@ HEAD3:
 BORDER:
     DB "+","--------------------------------------","+","+","--------------------------------------","+",13,10,"$"
 STATUS:
-    DB "Tab panel  Arrows select  S drive  Enter view  C copy",13,10,"$"
+    DB "Tab panel  Arrows select  S drive  Enter view  C copy  Size: $"
+SIZEREC:
+    DB " rec$"
+SIZEOVER:
+    DB ">65535 rec$"
+SZUNK:
+    DB "????? rec$"
+SIZENONE:
+    DB "-- rec$"
 SDPROMPT:
     DB "Select drive A-D for this panel; Esc cancels.",13,10,"$"
 SDINVMSG:
@@ -1467,6 +1614,15 @@ VREC:
     DW 0
 VSIZE:
     DW 0
+SZVALID:
+    DB 0
+SZCOUNT:
+    DS 3
+SIZEKEY:
+    DS 12
+SFCB:
+    DB 0,"           "
+    DS 24
 DRAWROW:
     DB 0
 ROWIDX:

@@ -1,24 +1,15 @@
 # Horton Commander roadmap
 
-Status: increments 0–9 are accepted after their Triptych gates and independent
-Astra review. The release candidate uses the current assumption that A: through
-D: are attached and usable. Increment 9 adds explicit panel drive selection.
-Increment 7 proves the native view/copy/Edit/CCP
-resume workflow and records the build pins. Increment 6 records capacity and
-stack evidence; Horton-specific runtime BIOS fault injection and full-size
-copy remain outside the qualified surface. Increment 5's first
-Astra review found that later session-file
-extents could evade the EOF check. Validation now checks the full record count
-with BDOS function 35; a regression fixture with a short first extent confirms
-that later records are rejected without changing the disk. Astra's follow-up
-review found no remaining blockers. Increment 1's
-review records full-directory page rescanning as a performance concern for
-later qualification. The roadmap review identified three contract mismatches;
-all were fixed and the follow-up review found no blocker. The increment 0
-review found no blockers. Increment 4's first review caught a rename-input
-Backspace hang; the implementation now preserves the erase counter across
-BDOS output, the real-machine regression passes, and Astra's follow-up review
-found no remaining blockers.
+Status: increments 0–10 are accepted after their Triptych gates and
+independent Astra reviews. The current target assumes A: through D: are
+attached and usable. Increment 9 adds explicit panel drive selection;
+increment 10 shows selected-file size as a logical record count. The current
+`HORTON.COM` is 11,355 bytes, 361 bytes larger than increment 9. Increment 7
+proves the native view/copy/Edit/CCP resume workflow and records build pins.
+Increment 6 records capacity and stack evidence; Horton-specific runtime BIOS
+fault injection and full-size copy remain outside the qualified surface.
+Earlier review fixes and their test evidence remain in the individual
+increment records.
 
 ## Release aim
 
@@ -126,8 +117,9 @@ hook.
 - Copy the highlighted file from the active drive to the other panel's drive.
 - Refuse an existing destination in the first version; do not silently
   overwrite it.
-- Copy complete 128-byte CP/M records to a newly reserved Horton temporary
-  name, verify the records, then rename to the destination. Refuse overwrites.
+- Write complete 128-byte CP/M records to a reserved Horton temporary file.
+  Check the copied records against the source before renaming the temporary
+  file to the destination.
 - On a normal-returning BDOS failure, remove the temporary file when safe,
   preserve the source, and report the remaining state. A fatal BIOS I/O error
   warm-boots to CCP and can leave the temporary file; the next launch must
@@ -243,6 +235,33 @@ physical hardware release qualification.
 Status: accepted after `npm run check` passed all eight increments and the
 independent Astra follow-up review found no blockers. The native test and
 release-candidate evidence are recorded in `docs/increments/increment-7.md`.
+
+### 8. Publish a bootable Triptych preview
+
+Status: accepted. Triptych supports an externally hosted multi-drive system
+image and descriptor. The published preview boots to CCP with Horton available
+on A:, and provides persistent writable B:, C: and D: media. The browser check
+confirmed that the panels can browse all four drives. This is software/model
+qualification, not physical hardware qualification. Evidence is recorded in
+`docs/increments/increment-8.md`.
+
+### 9. Select a panel drive explicitly
+
+Status: accepted after the complete Triptych gate and independent Astra review.
+Press `S` to select A: through D: for the active panel; Escape cancels, invalid
+input is reported, and `D` remains Delete. The other panel and CP/M default
+drive remain unchanged. Evidence is recorded in
+`docs/increments/increment-9.md`.
+
+### 10. Show selected-file size
+
+Status: accepted after `npm run check` passed increments 0–10 and independent
+Astra review found no concrete issues. The active panel shows the selected
+file's exact CP/M logical-record count; one record is 128 bytes and the final
+record may contain padding. The display does not claim an exact byte length or
+a date. The executable is 11,355 bytes, an increase of 361 bytes over
+increment 9. Evidence is recorded in
+`docs/increments/increment-10.md`.
 
 ## Deferred unless evidence promotes them
 
