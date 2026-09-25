@@ -396,18 +396,20 @@ const measurements = { scenarios: [] };
   });
   try {
     machine.launch();
-    for (let step = 0; step < 2; step += 1) {
-      const start = machine.transcript().length;
-      machine.send(ascii("]"), "advance left panel drive");
-      machine.waitPanel(`left panel drive advances ${step + 1}`);
-      assert.ok(machine.transcript().length > start);
-    }
+    machine.send(ascii("s"), "open left panel drive selector");
+    machine.waitFor("left drive selector prompt", (fresh) =>
+      fresh.includes(ascii("Select drive A-D")),
+    );
+    machine.send(ascii("C"), "select C: for the left panel");
+    machine.waitPanel("left panel selects C:");
     machine.send([9], "activate right panel");
     machine.waitPanel("right panel is active");
-    for (let step = 0; step < 2; step += 1) {
-      machine.send(ascii("]"), "advance right panel drive");
-      machine.waitPanel(`right panel drive advances ${step + 1}`);
-    }
+    machine.send(ascii("s"), "open right panel drive selector");
+    machine.waitFor("right drive selector prompt", (fresh) =>
+      fresh.includes(ascii("Select drive A-D")),
+    );
+    machine.send(ascii("D"), "select D: for the right panel");
+    machine.waitPanel("right panel selects D:");
     assert.ok(machine.terminal.text().includes("C: *.*"));
     assert.ok(machine.terminal.text().includes("D: *.*"));
     machine.send(ascii(">"), "advance D: to its second page");

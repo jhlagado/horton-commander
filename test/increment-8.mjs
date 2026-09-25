@@ -30,6 +30,7 @@ const image = Buffer.from(
     resolve(root, "site/releases/preview", descriptor.image.asset),
   ),
 );
+const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
 assert.equal(descriptor.profile, "triptych-cpu-v0.1-2m-n04");
 assert.deepEqual(descriptor.workDrives, ["B", "C", "D"]);
 assert.equal(descriptor.image.bytes, 2_097_152);
@@ -49,9 +50,13 @@ assert.deepEqual(
 const aDisk = new CpmDisk(Uint8Array.from(image));
 try {
   assert.ok(aDisk.file_names().includes("HORTON.COM"));
+  assert.equal(
+    aDisk.file_records("HORTON.COM"),
+    Math.ceil(hortonBytes.length / 128),
+  );
   assert.deepEqual(
-    Buffer.from(aDisk.read_file("HORTON.COM")).subarray(0, 10_854),
-    await readFile(resolve(root, "dist/HORTON.COM")),
+    Buffer.from(aDisk.read_file("HORTON.COM")).subarray(0, hortonBytes.length),
+    hortonBytes,
   );
 } finally {
   aDisk.free();

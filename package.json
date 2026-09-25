@@ -6,7 +6,8 @@
   "description": "A keyboard-first two-panel CP/M file manager for Triptych",
   "scripts": {
     "build": "node tools/build.mjs",
-    "check": "npm run build && node test/increment-0.mjs && node test/increment-1.mjs && node test/increment-2.mjs && node test/increment-3.mjs && node test/increment-4.mjs && node test/increment-5.mjs && node test/increment-6.mjs && node test/increment-7.mjs && node test/increment-8.mjs"
+    "preview": "npm run build && node tools/build-preview.mjs",
+    "check": "npm run build && node test/increment-0.mjs && node test/increment-1.mjs && node test/increment-2.mjs && node test/increment-3.mjs && node test/increment-4.mjs && node test/increment-5.mjs && node test/increment-6.mjs && node test/increment-7.mjs && node test/increment-8.mjs && node test/increment-9.mjs"
   },
   "devDependencies": {
     "atom-z80": "git+https://github.com/jhlagado/atom.git#802b5c2d320bec777f427755ff2d7338e3b80a05"

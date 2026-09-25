@@ -129,8 +129,10 @@ def prove(archive, deployment, session, host, log_path):
         # Horton begins on A:/B:. Set the left panel to C: as destination and
         # keep the selected B: file active on the right as the copy source.
         send_and_wait(b"\t", b"\x1b[7mHORTON  .COM", b"Q quit")
-        send_and_wait(b"]", b"B: *.*", b"Q quit")
-        send_and_wait(b"]", b"C: *.*", b"Q quit")
+        send_and_wait(b"s", b"Select drive A-D", b"Q quit")
+        send_and_wait(b"B", b"B: *.*", b"Q quit")
+        send_and_wait(b"s", b"Select drive A-D", b"Q quit")
+        send_and_wait(b"C", b"C: *.*", b"Q quit")
         send_and_wait(b"\t", b"\x1b[7mHELLO   .TXT", b"Q quit")
         send_and_wait(
             b"c", b"Copy selected name to the other panel's drive? Y/N"

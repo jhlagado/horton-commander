@@ -150,6 +150,18 @@ function waitPanel(description) {
   return terminal.text();
 }
 
+function selectDrive(letter, description) {
+  const promptStart = transcript.length;
+  send(ascii("s"), `${description}: open drive selector`);
+  waitFor(
+    `${description}: drive selector prompt`,
+    (fresh) => fresh.includes(ascii("Select drive A-D")),
+    promptStart,
+  );
+  send(ascii(letter), `${description}: choose ${letter}:`);
+  return waitPanel(`${description}: selected ${letter}:`);
+}
+
 function waitViewer(description) {
   const start = transcript.length;
   waitFor(description, (fresh) =>
@@ -213,8 +225,7 @@ try {
   assert.ok(screen.includes("B: *.*"));
   assert.ok(screen.includes("A_NOTE"), "panel and selected file return intact");
 
-  send(ascii("]"), "select B: on active panel");
-  screen = waitPanel("active panel changes to B:");
+  screen = selectDrive("B", "active panel changes to B:");
   assert.ok(screen.includes("B: *.*"));
   screen = enterViewer("B_NOTE");
   assert.ok(screen.includes("Drive B: B_NOTE"), screen);
@@ -222,8 +233,7 @@ try {
   screen = returnToPanels("B_NOTE");
   assert.ok(screen.includes("B: *.*"));
 
-  send(ascii("]"), "select C: on active panel");
-  screen = waitPanel("active panel changes to C:");
+  screen = selectDrive("C", "active panel changes to C:");
   assert.ok(screen.includes("C: *.*"));
   assert.ok(screen.includes("C_LONG"));
   screen = enterViewer("C_LONG");
@@ -268,8 +278,7 @@ try {
   assert.ok(screen.includes("B: *.*"));
   assert.ok(screen.includes("C_LONG"), "selected C: entry survives view and return");
 
-  send(ascii("]"), "select D: on active panel");
-  screen = waitPanel("active panel changes to D:");
+  screen = selectDrive("D", "active panel changes to D:");
   assert.ok(screen.includes("D: *.*"));
   screen = enterViewer("D_NOTE");
   assert.ok(screen.includes("Drive D: D_NOTE"), screen);
@@ -308,7 +317,7 @@ try {
           bootstrapSha256: systemBuild.descriptor.bootstrap.sha256,
         },
         drives: ["A", "B", "C", "D"],
-        driveSelection: "active panel cycles A through D with [ and ]",
+        driveSelection: "active panel explicitly selects A through D with S",
         viewer: {
           readOnly: true,
           recordsPerPage: 9,

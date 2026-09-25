@@ -10,7 +10,7 @@ on A: and B: together, makes the active panel clear, and provides a small set
 of safe operations. Both panels keep their own drive and selection. A file
 operation names its source and destination visibly before it changes the disk.
 
-The first screen follows the supplied Norton Commander reference: a top menu,
+The first screen follows the supplied NC reference: a top menu,
 two file panels, a status area, and an action strip. The first target is
 Triptych's 80-column by 24-row ANSI terminal. Essential operations must also
 have ordinary-key shortcuts; function-key sequences are optional until their

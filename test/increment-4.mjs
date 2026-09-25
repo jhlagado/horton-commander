@@ -604,7 +604,11 @@ for (const direction of ["A-to-B", "B-to-A"]) {
   try {
     machine.launch();
     machine.switchPanel();
-    machine.send(ascii("["), "change right panel from B: to A:");
+    machine.send(ascii("s"), "open the right panel drive selector");
+    machine.waitFor("drive selector prompt", (fresh) =>
+      fresh.includes(ascii("Select drive A-D")),
+    );
+    machine.send(ascii("A"), "change right panel from B: to A:");
     const screen = machine.waitPanel("right panel selects A:");
     assert.ok(screen.includes("A: *.*"), screen);
     const moveStart = machine.transcript().length;

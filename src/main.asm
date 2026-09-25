@@ -46,10 +46,10 @@ KEYLOOP:
     JP Z,PREVPAGE
     CP '>'
     JP Z,NEXTPAGE
-    CP '['
-    JP Z,DRVPREV
-    CP ']'
-    JP Z,DRVNEXT
+    CP 's'
+    JP Z,SELDRV
+    CP 'S'
+    JP Z,SELDRV
     CP 13
     JP Z,DOVIEW
     CP 'v'
@@ -240,67 +240,71 @@ NEXTR:
     CALL DRAW
     JP KEYLOOP
 
-; Change only the active panel's explicit drive. The other panel retains its
-; drive, page and selection. The four-drive Triptych profile is A: through D:.
-DRVPREV:
+; Select one explicit drive for the active panel. Invalid input and Escape
+; leave both panels unchanged; choosing the current drive preserves its view.
+SELDRV:
+    LD A,35
+    LD (MSG),A
+    CALL DRAW
+    CALL READKEY
+    CP 27
+    JR Z,SDCANCEL
+    CP 'a'
+    JR C,SDVALID
+    CP 'e'
+    JR NC,SDVALID
+    SUB 32
+SDVALID:
+    CP 'A'
+    JR C,SDINV
+    CP 'E'
+    JR NC,SDINV
+    SUB 64
+    LD (SDRV),A
     LD A,(ACTIVE)
     OR A
-    JR NZ,DPREVRG
-    LD HL,FCBL
+    JR NZ,SDRIGHT
     LD A,(FCBL)
-    DEC A
-    JR NZ,DPREVL
-    LD A,4
-DPREVL:
-    LD (HL),A
-    LD HL,0
-    LD (PAGEL),HL
-    XOR A
-    LD (SELL),A
-    JP DRVREF
-DPREVRG:
-    LD A,(FCBR)
-    DEC A
-    JR NZ,DPREVRS
-    LD A,4
-DPREVRS:
-    LD (FCBR),A
-    LD HL,0
-    LD (PAGER),HL
-    XOR A
-    LD (SELR),A
-    JP DRVREF
-
-DRVNEXT:
-    LD A,(ACTIVE)
-    OR A
-    JR NZ,DNEXERG
-    LD A,(FCBL)
-    INC A
-    CP 5
-    JR C,DNEXTL
-    LD A,1
-DNEXTL:
+    LD B,A
+    LD A,(SDRV)
+    CP B
+    JR Z,SDDONE
     LD (FCBL),A
     LD HL,0
     LD (PAGEL),HL
     XOR A
     LD (SELL),A
-    JP DRVREF
-DNEXERG:
+    JR SDREF
+SDRIGHT:
     LD A,(FCBR)
-    INC A
-    CP 5
-    JR C,DNEXERS
-    LD A,1
-DNEXERS:
+    LD B,A
+    LD A,(SDRV)
+    CP B
+    JR Z,SDDONE
     LD (FCBR),A
     LD HL,0
     LD (PAGER),HL
     XOR A
     LD (SELR),A
-DRVREF:
+SDREF:
+    XOR A
+    LD (MSG),A
     CALL REFRESH
+    CALL DRAW
+    JP KEYLOOP
+SDCANCEL:
+    XOR A
+    LD (MSG),A
+    CALL DRAW
+    JP KEYLOOP
+SDINV:
+    LD A,36
+    LD (MSG),A
+    CALL DRAW
+    CALL READKEY
+SDDONE:
+    XOR A
+    LD (MSG),A
     CALL DRAW
     JP KEYLOOP
 
@@ -821,6 +825,10 @@ DRAWEND:
     JP Z,DRRSMIO
     CP 34
     JP Z,DRRSMUS
+    CP 35
+    JP Z,DRSDPROM
+    CP 36
+    JP Z,DRSDINV
     JP DRCLEANF
 DRAWMISS:
     LD DE,MISSMSG
@@ -943,6 +951,12 @@ DRRSMIO:
     JP DRAWMSG
 DRRSMUS:
     LD DE,RSMUSRMG
+    JP DRAWMSG
+DRSDPROM:
+    LD DE,SDPROMPT
+    JP DRAWMSG
+DRSDINV:
+    LD DE,SDINVMSG
     JP DRAWMSG
 DRAWSTAT:
     LD DE,STATUS
@@ -1201,7 +1215,11 @@ HEAD3:
 BORDER:
     DB "+","--------------------------------------","+","+","--------------------------------------","+",13,10,"$"
 STATUS:
-    DB "Tab panel  Arrows select  [] drives  Enter view  C copy",13,10,"$"
+    DB "Tab panel  Arrows select  S drive  Enter view  C copy",13,10,"$"
+SDPROMPT:
+    DB "Select drive A-D for this panel; Esc cancels.",13,10,"$"
+SDINVMSG:
+    DB "Invalid drive; choose A-D. Press a key to continue.",13,10,"$"
 MISSMSG:
     DB "File is no longer present on this drive.",13,10,"$"
 BIGMSG:
@@ -1411,6 +1429,8 @@ SELR:
     DB 0
 MSG:
     DB 0
+SDRV:
+    DB 1
 VROW:
     DB 0
 VEOF:

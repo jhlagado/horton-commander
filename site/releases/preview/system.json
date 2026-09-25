@@ -4,10 +4,14 @@
   "instruction": "Type HORTON to start Horton Commander. B, C and D are persistent writable disks.",
   "profile": "triptych-cpu-v0.1-2m-n04",
   "image": {
-    "asset": "horton-preview-767865e340dfea082371f9dd20044f36feaafba8133e0f7625c44c3baae01a49.img",
+    "asset": "horton-preview-8d7534c3b659290a1fa8438ac7e3b71b2667f2d43c8177fb4a2e00983ec29e27.img",
     "bytes": 2097152,
-    "sha256": "767865e340dfea082371f9dd20044f36feaafba8133e0f7625c44c3baae01a49"
+    "sha256": "8d7534c3b659290a1fa8438ac7e3b71b2667f2d43c8177fb4a2e00983ec29e27"
   },
   "workDisk": "copy-image",
-  "workDrives": ["B", "C", "D"]
+  "workDrives": [
+    "B",
+    "C",
+    "D"
+  ]
 }

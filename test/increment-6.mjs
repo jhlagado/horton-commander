@@ -152,6 +152,17 @@ function createMachine({
     return pc >= hortonStartAddress && pc < hortonStartAddress + hortonBytes.length;
   }
 
+  function transientStackPointer() {
+    const { pc, sp } = cpuState(cpu);
+    if (isHortonPc(pc)) return sp;
+    assert.ok(
+      sp >= bdosLabels.STKBASE && sp <= bdosLabels.STKTOP,
+      "interactive input is waiting on the resident BDOS stack",
+    );
+    const savedSp = cpu.read_ram(bdosLabels.OLDSP, 2);
+    return savedSp[0] | (savedSp[1] << 8);
+  }
+
   function drain() {
     const bytes = Buffer.from(cpu.take_serial_output());
     if (bytes.length > 0) {
@@ -268,18 +279,11 @@ function createMachine({
     get trackedTstates() {
       return trackedTstates;
     },
-    waitForHortonPc() {
-      return waitFor("Horton resumes after the BDOS call", () => {
-        const { pc } = cpuState(cpu);
-        return isHortonPc(pc);
-      });
-    },
     armStackCanaries() {
-      const { pc, sp } = cpuState(cpu);
-      assert.ok(isHortonPc(pc), "canaries are armed while Horton owns the CPU");
+      const sp = transientStackPointer();
       assert.ok(
         sp > ccpLabels.STKBASE && sp <= ccpLabels.STKTOP,
-        "Horton SP is inside the CCP transient stack",
+        "Horton SP, saved by BDOS when needed, is inside the CCP transient stack",
       );
       assert.ok(
         cpu
@@ -298,17 +302,18 @@ function createMachine({
       return sp;
     },
     beginStackTracking() {
-      const { pc, sp } = cpuState(cpu);
-      assert.ok(isHortonPc(pc), "stack sampling starts in Horton code");
-      minHortonStackPointer = sp;
+      minHortonStackPointer = transientStackPointer();
       minBdosStackPointer = bdosLabels.STKTOP;
       stackTracking = true;
-      return sp;
+      return minHortonStackPointer;
     },
     finishStackTracking() {
       assert.ok(stackCanaries, "stack canaries were armed");
-      const { pc } = cpuState(cpu);
-      assert.ok(isHortonPc(pc), "stack evidence is read after returning to Horton");
+      const finalTransientSp = transientStackPointer();
+      assert.ok(
+        finalTransientSp > ccpLabels.STKBASE && finalTransientSp <= ccpLabels.STKTOP,
+        "saved Horton stack is still inside the CCP transient stack",
+      );
       const ccpGuard = cpu.read_ram(
         ccpLabels.STKGUARD,
         ccpLabels.STKGUEND - ccpLabels.STKGUARD,
@@ -405,7 +410,11 @@ const capacityProof = { scenarios: [] };
     assert.ok(machine.terminal.text().includes("B: *.*"));
     assert.deepEqual(machine.checkpoint(1), machine.checkpoints[1]);
 
-    machine.send(ascii("]"), "set left panel to B:");
+    machine.send(ascii("s"), "open left panel drive selector");
+    machine.waitFor("left drive selector prompt", (fresh) =>
+      fresh.includes(ascii("Select drive A-D")),
+    );
+    machine.send(ascii("B"), "set left panel to B:");
     machine.waitPanel("left panel switches to B:");
     const source = diskStats(machine.cpu, 1);
     assert.deepEqual(source.bytes, capacity.contents, "full source file remains byte-identical");
@@ -474,11 +483,19 @@ const capacityProof = { scenarios: [] };
   const machine = createMachine({ bFiles: [["COPYTEST.BIN", copyBytes]] });
   try {
     machine.launch();
-    machine.send(ascii("]"), "set left source panel to B:");
+    machine.send(ascii("s"), "open left panel drive selector");
+    machine.waitFor("left drive selector prompt", (fresh) =>
+      fresh.includes(ascii("Select drive A-D")),
+    );
+    machine.send(ascii("B"), "set left source panel to B:");
     machine.waitPanel("B: source file is visible");
     machine.send([9], "activate the right panel");
     machine.waitPanel("right panel is active");
-    machine.send(ascii("]"), "set right destination panel to C:");
+    machine.send(ascii("s"), "open right panel drive selector");
+    machine.waitFor("right drive selector prompt", (fresh) =>
+      fresh.includes(ascii("Select drive A-D")),
+    );
+    machine.send(ascii("C"), "set right destination panel to C:");
     machine.waitPanel("C: is the copy destination");
     machine.send([9], "activate the left source panel");
     machine.waitPanel("B: is active for copy");
@@ -488,8 +505,6 @@ const capacityProof = { scenarios: [] };
       fresh.includes(ascii("Q quit")),
     );
     machine.pumpSlices(4, "copy confirmation settles before input");
-    machine.waitForHortonPc();
-
     const entryStackPointer = machine.armStackCanaries();
     machine.beginStackTracking();
     machine.setTrackedStepLimit(400_000_000);
@@ -500,7 +515,6 @@ const capacityProof = { scenarios: [] };
       (fresh) => fresh.includes(ascii("Copy verified and complete; both panels refreshed.")),
       copyAt,
     );
-    machine.waitForHortonPc();
     const stack = machine.finishStackTracking();
     assert.ok(
       machine.minHortonStackPointer < entryStackPointer,

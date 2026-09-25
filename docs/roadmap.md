@@ -1,6 +1,6 @@
 # Horton Commander roadmap
 
-Status: increments 0–7 are accepted after their Triptych gates and independent
+Status: increments 0–8 are accepted after their Triptych gates and independent
 Astra review. The release candidate uses the current assumption that A: through
 D: are attached and usable. Increment 7 proves the native view/copy/Edit/CCP
 resume workflow and records the build pins. Increment 6 records capacity and
@@ -27,7 +27,7 @@ start on A: and B: and can select any of those four drives. A user can navigate
 the panels, view a file, copy it, rename or move it, delete it with
 confirmation, and edit a file with the existing Edit program through a
 documented CCP handoff that restores the file-manager session. The program is
-not a full Norton Commander port.
+not a feature-for-feature reimplementation.
 
 The visual reference is the supplied two-panel DOS screen. The interface keeps
 the active selection, opposite-panel destination, top menu, status, and
@@ -247,6 +247,6 @@ release-candidate evidence are recorded in `docs/increments/increment-7.md`.
 
 Directory trees, multi-file tagging, wildcard batches, archive browsing,
 formatting, recursive deletion, file attributes, a built-in editor, mouse
-support, full Norton key parity, and support for non-Triptych CP/M machines.
+support, complete NC key parity, and support for non-Triptych CP/M machines.
 The roadmap can add one only when a real use case and the byte/workspace cost
 justify it.
