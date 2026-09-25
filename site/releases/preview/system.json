@@ -1,0 +1,13 @@
+{
+  "schema": "triptych-external-system-v1",
+  "name": "Horton Commander preview",
+  "instruction": "Type HORTON to start Horton Commander. B, C and D are persistent writable disks.",
+  "profile": "triptych-cpu-v0.1-2m-n04",
+  "image": {
+    "asset": "horton-preview-767865e340dfea082371f9dd20044f36feaafba8133e0f7625c44c3baae01a49.img",
+    "bytes": 2097152,
+    "sha256": "767865e340dfea082371f9dd20044f36feaafba8133e0f7625c44c3baae01a49"
+  },
+  "workDisk": "copy-image",
+  "workDrives": ["B", "C", "D"]
+}
