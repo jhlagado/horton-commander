@@ -1,16 +1,15 @@
 # Horton Commander next-phase roadmap
 
-Status: increment 9 is implemented and passing its local Triptych gate; the
-independent Astra review and refreshed public preview remain before acceptance.
-This roadmap starts after the initial hosted preview is qualified. It
-continues the accepted increments in `docs/roadmap.md` and does not change
-their acceptance record.
+Status: increment 9 is accepted after its Triptych gate, independent Astra
+review and refreshed public-browser qualification. This roadmap continues the
+accepted increments in `docs/roadmap.md` and does not change their acceptance
+record.
 
 ## Purpose
 
 The next phase should make Horton more useful for routine CP/M file work. It
-will improve drive selection and file information, add a read-only hex view
-and test an editor that runs inside Horton. A later source-sharing step will
+will add file information and a read-only hex view, then test an editor that
+runs inside Horton. A later source-sharing step will
 keep the editor engine common to Edit and Horton after the integrated workflow
 has proved useful.
 
@@ -19,23 +18,22 @@ Horton keeps one active file selection, explicit confirmation for destructive
 operations and the existing CP/M file-safety rules. This is a practical
 subset, not complete NC feature parity.
 
-## Increment 9 preview follow-up
+## Increment 9 preview qualification (accepted)
 
-Increment 8 is accepted. The descriptor-only public URL was verified in the
-browser: it boots to the CP/M prompt, starts Horton, and both panels browse
-A: through D:. Triptych's browser suite also verifies that files written to
-B:, C: and D: persist after reload. The test did not write to the interactive
-browser session's saved disks.
+Increment 8 established the descriptor-only public launch. Its browser
+qualification confirmed that it boots to the CP/M prompt, starts Horton, and
+both panels browse A: through D:. Triptych's browser suite also verifies that
+files written to B:, C: and D: persist after reload. That test did not write to
+the interactive browser session's saved disks.
 
-The hosted-preview entry gate is complete. Refresh the published preview
-after the drive-selector change is accepted so the public example stays
-current.
+The selector increment refreshed the published preview so the public example
+matches the accepted executable.
 
-- Refresh the preview disk with the accepted `HORTON.COM` and retain its
+- The preview disk contains the accepted `HORTON.COM` and keeps its
   descriptor-only launch URL.
-- Confirm `S` opens the selector, A:–D: selection changes only the active
-  panel, and Escape returns without a change.
-- Record the new image digest and public browser result in
+- A public Chromium session confirmed that `S` opens selection, lowercase `c`
+  changes the left panel, and Escape cancels a selection on the right panel.
+- The image digest and browser result are recorded in
   `docs/increments/increment-9.md`.
 
 ## Increments

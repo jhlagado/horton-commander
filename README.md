@@ -19,15 +19,14 @@ terminal, CP/M scenarios, and native terminal host provide software/model
 proof; this is not a physical hardware qualification.
 
 The [architecture note](docs/architecture.md) records the current boundaries
-and the restart-based CCP handoff. Increments 0–8 have passed independent
-Astra review. Increment 9 adds explicit drive selection and is under final
-public-preview qualification. The accepted release candidate includes live
+and the restart-based CCP handoff. Increments 0–9 have passed their Triptych
+gates and independent Astra review. The accepted release candidate includes live
 drive panels, a read-only viewer, file operations, and a documented handoff to
 the separate `EDIT.COM` followed by session restore.
 The [scope and editor discussion](docs/discussions/horton-scope-and-editor.md)
 records candidates for the next roadmap without changing the accepted plan.
 The separate [next-phase roadmap](docs/roadmap-next.md) turns selected ideas
-into reviewable increments, pending public qualification of the hosted image.
+into reviewable increments.
 
 Run `npm run check` to build `HORTON.COM` with ATOM and run all ten increment
 gates. They cover the CCP handoff, full 1,024-entry directory, A:–D: selection,

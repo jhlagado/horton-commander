@@ -1,8 +1,9 @@
 # Horton Commander roadmap
 
-Status: increments 0–8 are accepted after their Triptych gates and independent
+Status: increments 0–9 are accepted after their Triptych gates and independent
 Astra review. The release candidate uses the current assumption that A: through
-D: are attached and usable. Increment 7 proves the native view/copy/Edit/CCP
+D: are attached and usable. Increment 9 adds explicit panel drive selection.
+Increment 7 proves the native view/copy/Edit/CCP
 resume workflow and records the build pins. Increment 6 records capacity and
 stack evidence; Horton-specific runtime BIOS fault injection and full-size
 copy remain outside the qualified surface. Increment 5's first
