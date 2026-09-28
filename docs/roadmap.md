@@ -10,8 +10,8 @@ returns, the user follows the displayed drive-restore command and then enters
 `A:HC /R`. There is no tested automatic CCP command chain. Increment 16 pins
 three shared Edit document-core modules by revision and checksum. Each
 increment's final evidence and review notes are in its
-individual record. The editor-containing artifact remains private while
-distribution terms are reviewed.
+individual record. The current `HC.COM` preview is distributed under
+GPL-3.0-or-later with its corresponding source.
 
 ## Release aim
 
@@ -283,8 +283,9 @@ The `I` key enters an in-process editor built from pinned Edit 0.2.0 source;
 `E` keeps the restart-based CCP handoff. Edit returns to the same panel and
 filename, saves through the selected drive's FCB, and accepts documents up to
 32 KiB. The combined program is 18,578 bytes and fits the measured Triptych
-TPA layout. This prototype remains private while its distribution terms are
-reviewed. Evidence is recorded in `docs/increments/increment-12.md`.
+TPA layout. At the time of this increment, the prototype was private pending a
+distribution decision; the later `HC.COM` preview is released under
+GPL-3.0-or-later. Evidence is recorded in `docs/increments/increment-12.md`.
 
 ### 13. Show approximate file size in both panels
 

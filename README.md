@@ -18,6 +18,11 @@ interface. Triptych is the qualified execution target. Its 80-by-24 ANSI
 terminal, CP/M scenarios, and native terminal host provide software/model
 proof; this is not a physical hardware qualification.
 
+Horton Commander, including `HC.COM`, is distributed under GPL-3.0-or-later.
+The combined program includes modified Edit 0.2.0 source modules, also under
+that license. See [`LICENSE`](LICENSE) and [`NOTICE.md`](NOTICE.md). The
+corresponding source and build instructions are in this repository.
+
 The [architecture note](docs/architecture.md) records the current boundaries;
 the [roadmap](docs/roadmap.md) and [next-phase record](docs/roadmap-next.md)
 show accepted increments and later candidates. Increments 0–16 have passed
@@ -29,8 +34,9 @@ restore and `A:HC /R` commands. The editor's document, buffer, and navigation
 modules are pinned to Edit revision
 `63762528365f8db04464d2fe9bcf4cc4e8091a68` and statically assembled into both
 programs. Increment 17 records why command handoff remains explicit rather
-than automatic. The editor-containing build is still private while
-distribution terms are reviewed.
+than automatic. The current `HC.COM` preview is available from the
+[CP/M Recipes site](https://jhlagado.github.io/cpm-recipes/), which links to
+the exact source revision and license.
 
 Run `npm run check` to build `HC.COM` with ATOM and run the seventeen
 executable increment gates (increments 0–16). They cover the CCP handoff, the
@@ -40,10 +46,9 @@ Triptych terminal session that views, copies, edits, resumes, and reopens a
 file while checking persisted disk images. Set `TRIPTYCH_ROOT` if Triptych is
 not a sibling checkout at `../triptych`.
 
-The published preview disk image and its integrity-checked Triptych launch
+The older direct-image preview and its integrity-checked Triptych launch
 descriptor are in [`site/releases/preview`](site/releases/preview/README.md).
-The hosted preview remains on the earlier increment 11 image; the current
-private `HC.COM` build has not been published.
-This link boots the image directly in the Triptych WASM host:
+That image remains at increment 11 and contains `HORTON.COM`. The current
+recipe boots `HC.COM` on A: with writable B:, C: and D: drives in Triptych:
 
-<https://jhlagado.github.io/triptych/?system=https%3A%2F%2Fjhlagado.github.io%2Fhorton-commander%2Freleases%2Fpreview%2Fsystem.json>
+[Launch Horton Commander in Triptych](https://jhlagado.github.io/triptych/?workspace=https%3A%2F%2Fjhlagado.github.io%2Fcpm-recipes%2Frecipes%2Fhorton-commander.json&components=hc)

@@ -65,9 +65,10 @@ inspection feature into an underspecified editor.
 Launching `EDIT.COM` as a separate transient returns through the CCP. That
 breaks the natural expectation that Horton will still be present when editing
 ends, even when a session file can restore the selection after a relaunch.
-Increment 12 tests an in-process editor mode in `HORTON.COM` to avoid that
-process boundary; the combined build remains private while distribution terms
-are reviewed.
+Increment 12 tested an in-process editor mode in `HORTON.COM` to avoid that
+process boundary. At that checkpoint, the combined build was still private
+while distribution terms were reviewed; the current `HC.COM` preview is now
+published under GPL-3.0-or-later with its source and notices.
 
 Edit organizes its editor as statically linked document, session, navigation,
 layout, presentation, input and CP/M load/save modules. Its
@@ -82,9 +83,10 @@ pinned Edit 0.2.0 source into Horton, including its editor loop, display,
 document operations and CP/M load/save code. Horton adapts the entry and return
 to its panel state; standalone Edit keeps its own program shell. The copied
 source is not yet a clean split between a common editing core and each
-application's input, display and file adapter. A later step should define that
-boundary before making a source dependency of both builds, then resolve the
-license and distribution question.
+application's input, display and file adapter. Increment 16 pins the shared
+document core. The current combined preview is distributed under
+GPL-3.0-or-later; its source and notices are published with the CP/M Recipes
+entry.
 
 Increment 12 has already built and qualified the combined Horton executable.
 Its editor code is 5,522 bytes, its workspace is 512 bytes, its text arena is
@@ -94,11 +96,11 @@ is a comparison, not a drop-in Horton profile: it uses a 47,104-byte text
 arena and 490 of 512 workspace bytes. Any source change or larger Horton edit
 profile needs a fresh integrated build and memory map.
 
-There is also a distribution decision to make before sharing source in a
-release. Edit is GPL-3.0-or-later, while Horton currently has no top-level
-license declaration. That does not prevent a private integration experiment,
-but the source dependency and distribution terms should be resolved before
-shipping a combined executable.
+At the time this discussion was written, Edit was GPL-3.0-or-later and Horton
+had no top-level license declaration. The release decision is now resolved:
+the combined program and its corresponding source are distributed under
+GPL-3.0-or-later, with the terms and editor provenance recorded in the root
+`LICENSE` and `NOTICE.md`.
 
 ## Proposed order for the next roadmap
 

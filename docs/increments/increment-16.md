@@ -41,5 +41,6 @@ engine/gap/display measurements passed there. The generated `EDIT.COM` was
 `f113ba8e9e7c1fa18e4c85caf04a733a760540e34ba3d9265bcdd75f933f7ba1`; its
 manifest records the same pinned core revision and module hashes.
 
-The source is GPL-3.0-or-later. Horton remains private until its distribution
-terms are resolved; this increment makes no publication or license decision.
+At this increment's checkpoint, the combined build was not yet distributed.
+The current `HC.COM` recipe was added later under GPL-3.0-or-later; see the
+root `LICENSE` and `NOTICE.md` for the current terms and source provenance.

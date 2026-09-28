@@ -52,5 +52,7 @@ The combined `HORTON.COM` remains 18,578 bytes because the fixed editor segment
 starts at `$3400`; its SHA-256 is
 `fa985c299b7ced926e92ab7fe675e0057bf5d3f19c0e9f80dd3e0a0f6d43ad00`. The
 build map records the Horton and editor segment boundaries.
-The hosted preview remains on increment 11, and the combined increment 12/13
-build stays private while its distribution terms are reviewed.
+At this increment's checkpoint, the hosted disk-image preview remained on
+increment 11 and the combined build was not yet distributed. The current
+`HC.COM` recipe was added later under GPL-3.0-or-later, with corresponding
+source and notices published from this repository.

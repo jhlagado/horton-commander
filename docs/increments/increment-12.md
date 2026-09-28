@@ -26,8 +26,10 @@ implementation as the reference for the later source-sharing increment.
 
 The Edit checkout has newer uncommitted work. Horton uses source from the
 pinned 0.2.0 commit, leaving those edits untouched. The copied editor source is
-GPL-3.0-or-later; this is a private integration experiment, and the combined
-executable is not published by this increment.
+GPL-3.0-or-later. At this increment's checkpoint, the integration remained a
+private experiment and the combined executable was not published. The later
+`HC.COM` preview resolved distribution under GPL-3.0-or-later; see the root
+`LICENSE` and `NOTICE.md` for the current terms and source provenance.
 
 ## Measured memory map
 
@@ -72,6 +74,7 @@ directory reordering, saved bytes and record count, absence of a session file,
 the 32 KiB limit and rejection of the first byte beyond it, and unchanged A:,
 C: and D: images.
 
-The hosted preview remains on increment 11. The combined increment 12 build
-includes GPL-3.0-or-later editor source and remains private pending a
-distribution decision.
+At this increment's checkpoint, the hosted disk-image preview remained on
+increment 11 and the combined build was not yet distributed. The current
+`HC.COM` recipe was added later under GPL-3.0-or-later, with corresponding
+source and notices published from this repository.

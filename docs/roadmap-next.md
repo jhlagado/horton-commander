@@ -4,11 +4,13 @@ Status: increments 14–16 are implemented, pass the complete Horton test suite,
 and have independent Astra review. Increment 17's decision is implemented,
 documented, and independently reviewed. The next-phase
 work has focused on making editing useful inside Horton and clarifying the
-limits of the CP/M command handoff. The current build is private.
+limits of the CP/M command handoff. The current `HC.COM` preview is available
+through the CP/M Recipes site under GPL-3.0-or-later.
 
 The working target assumes A:, B:, C: and D: are attached in Triptych. The
-current executable is `HC.COM`; the hosted preview still contains the earlier
-increment 11 image.
+current executable is `HC.COM`. The legacy whole-disk preview remains at
+increment 11; the current recipe-based launch installs `HC.COM` on A: and
+provides writable B:, C: and D: work disks.
 
 ## 14. Make E open the in-process editor
 
@@ -49,8 +51,9 @@ dependency.
 
 See [increment 16](increments/increment-16.md). Horton rejects modified core
 source and its manifest records the pin. The standalone Edit checker and an
-isolated build also pass. The shared source is GPL-3.0-or-later, so the
-Horton artifact remains private until distribution terms are decided.
+isolated build also pass. The combined preview is distributed under
+GPL-3.0-or-later, with its corresponding source linked from the CP/M Recipes
+entry.
 
 ## 17. Decide the external-command return path
 

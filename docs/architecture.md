@@ -2,8 +2,8 @@
 
 Status: current implementation architecture; increments 0–16 are accepted
 after Triptych proofs and independent Astra review. Increment 17 records the
-CCP handoff decision. The `HC.COM` build remains private while the editor
-source's distribution terms are reviewed.
+CCP handoff decision. The current `HC.COM` preview is distributed under
+GPL-3.0-or-later with its corresponding source.
 
 ## User outcome
 
@@ -34,8 +34,8 @@ delivery is proved across the intended keyboards.
   `63762528365f8db04464d2fe9bcf4cc4e8091a68`; each application keeps its own
   screen, key policy, file adapter, prompts, and startup/exit path. This is a
   source-level dependency, not a runtime library or fetched build-time
-  dependency. The combined artifact is private while GPL-3.0-or-later
-  distribution terms are reviewed.
+  dependency. The combined artifact and source are distributed under
+  GPL-3.0-or-later; `LICENSE` and `NOTICE.md` record the terms and provenance.
 
 The program uses explicit FCB drive bytes for A: and B: so that browsing or
 copying one panel does not silently change the user's default drive. CP/M has
