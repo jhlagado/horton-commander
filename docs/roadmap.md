@@ -1,25 +1,27 @@
 # Horton Commander roadmap
 
-Status: increments 0–11 are accepted after their Triptych gates and
-independent Astra reviews. The current target assumes A: through D: are
-attached and usable. Increment 9 adds explicit panel drive selection;
-increment 10 shows selected-file size as a logical record count; increment 11
-adds a read-only hexadecimal view. The current `HORTON.COM` is 12,045 bytes,
-690 bytes larger than increment 10. Increment 7 proves the native
-view/copy/Edit/CCP resume workflow and records build pins. Increment 6 records
-capacity and stack evidence; Horton-specific runtime BIOS fault injection and
-full-size copy remain outside the qualified surface. Earlier review fixes and
-their test evidence remain in the individual increment records.
+Status: executable increments 0–16 are accepted after Triptych gates and
+independent Astra reviews. Increment 17's handoff decision is reviewed and
+accepted. The target assumes A: through D: are attached and usable. The
+current `HC.COM` is 18,213 bytes; its in-process quick editor is 5,157 bytes.
+`E` opens the editor, while `!` saves a
+session and prints a command for the user to enter at CCP; after that command
+returns, the user follows the displayed drive-restore command and then enters
+`A:HC /R`. There is no tested automatic CCP command chain. Increment 16 pins
+three shared Edit document-core modules by revision and checksum. Each
+increment's final evidence and review notes are in its
+individual record. The editor-containing artifact remains private while
+distribution terms are reviewed.
 
 ## Release aim
 
-Deliver a useful, deliberately limited `HORTON.COM` for Triptych CP/M. The
+Deliver a useful, deliberately limited `HC.COM` for Triptych CP/M. The
 working assumption is that A: through D: are attached and usable; the panels
 start on A: and B: and can select any of those four drives. A user can navigate
 the panels, view a file, copy it, rename or move it, delete it with
-confirmation, and edit a file with the existing Edit program through a
-documented CCP handoff that restores the file-manager session. The program is
-not a feature-for-feature reimplementation.
+confirmation, and edit a file with the in-process quick editor. The user can
+also leave Horton to run an external command at CCP and manually restore the
+saved session. The program is not a feature-for-feature reimplementation.
 
 The visual reference is the supplied two-panel DOS screen. The interface keeps
 the active selection, opposite-panel destination, top menu, status, and
@@ -274,10 +276,66 @@ means the last record's exact byte length is unknown. The executable is 12,045
 bytes, an increase of 690 bytes over increment 10. Evidence is recorded in
 `docs/increments/increment-11.md`.
 
+### 12. Prototype editing inside Horton
+
+Status: accepted after the full Triptych suite and independent Astra review.
+The `I` key enters an in-process editor built from pinned Edit 0.2.0 source;
+`E` keeps the restart-based CCP handoff. Edit returns to the same panel and
+filename, saves through the selected drive's FCB, and accepts documents up to
+32 KiB. The combined program is 18,578 bytes and fits the measured Triptych
+TPA layout. This prototype remains private while its distribution terms are
+reviewed. Evidence is recorded in `docs/increments/increment-12.md`.
+
+### 13. Show approximate file size in both panels
+
+Status: accepted after the complete Triptych suite and independent Astra
+review. Each visible row caches a rounded-up KiB estimate from BDOS's logical
+128-byte record count. The selected-file status line continues to show the
+exact record count. The bounded-page test checks both panels, empty and large
+files, page transitions, and unchanged disk images. The number is an
+approximate scale, not an exact byte or physical-sector count.
+
+### 14. Make E open the in-process editor
+
+Status: accepted after the complete Triptych suite and independent Astra
+review. `E`/`e` opens the editor from either panel; Ctrl-S saves and Ctrl-Q
+returns to the same process. Dirty-quit confirmation and recoverable save
+failure preserve the draft appropriately. `!` owns the explicit CCP command
+handoff. Evidence is in [`increment 14`](increments/increment-14.md).
+
+### 15. Define Horton's quick-edit profile
+
+Status: accepted after the complete Triptych suite and independent Astra
+review. Horton exposes quick text editing without search and replace, retains
+the 32 KiB limit, and identifies the selected drive and file. Tests prove a
+rejected full-buffer insert leaves the complete document unchanged. Evidence
+is in [`increment 15`](increments/increment-15.md).
+
+### 16. Pin the shared editing core
+
+Status: accepted after the Horton suite, a clean isolated standalone Edit
+build, and independent Astra review. Document storage, buffer editing, and
+navigation are shared as a checksum-verified source snapshot pinned to Edit
+revision `63762528365f8db04464d2fe9bcf4cc4e8091a68`; each program retains its
+own UI and file policy. The source assembles into each executable. This is not
+a runtime library or npm dependency. Evidence is in
+[`increment 16`](increments/increment-16.md).
+
+### 17. Decide the external-command return path
+
+Decision: keep the current manual CCP handoff. The Triptych CCP loads a
+transient at `$0100` and its ordinary return warm-boots to a fresh CCP. No
+documented nested command or `SUBMIT` mechanism is implemented. Horton saves
+state, displays a command to type at CCP, and prints the saved-drive restore
+command followed by `A:HC /R`. This
+avoids claiming an automatic in-memory return that CP/M does not provide.
+Evidence and scope limits are in [`increment 17`](increments/increment-17.md);
+independent review found no blockers.
+
 ## Deferred unless evidence promotes them
 
 Directory trees, multi-file tagging, wildcard batches, archive browsing,
-formatting, recursive deletion, file attributes, a built-in editor, mouse
-support, complete NC key parity, and support for non-Triptych CP/M machines.
-The roadmap can add one only when a real use case and the byte/workspace cost
-justify it.
+formatting, recursive deletion, file attributes, deeper editor-core
+extraction, mouse support, complete NC key parity, and support for non-
+Triptych CP/M machines. The roadmap can add one only when a real use case and
+the byte/workspace cost justify it.

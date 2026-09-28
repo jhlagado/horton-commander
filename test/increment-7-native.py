@@ -116,7 +116,7 @@ def prove(archive, deployment, session, host, log_path):
         os.close(slave)
         wait_for(b"\r\nA>")
 
-        send_and_wait(b"A:HORTON\r", b"HORTON COMMANDER", b"Q quit")
+        send_and_wait(b"A:HC\r", b"HORTON COMMANDER", b"Q quit")
         send_and_wait(b"\t", b"\x1b[7mHELLO   .TXT", b"Q quit")
         send_and_wait(
             b"\r",
@@ -128,7 +128,7 @@ def prove(archive, deployment, session, host, log_path):
 
         # Horton begins on A:/B:. Set the left panel to C: as destination and
         # keep the selected B: file active on the right as the copy source.
-        send_and_wait(b"\t", b"\x1b[7mHORTON  .COM", b"Q quit")
+        send_and_wait(b"\t", b"\x1b[7mHC      .COM", b"Q quit")
         send_and_wait(b"s", b"Select drive A-D", b"Q quit")
         send_and_wait(b"B", b"B: *.*", b"Q quit")
         send_and_wait(b"s", b"Select drive A-D", b"Q quit")
@@ -144,19 +144,16 @@ def prove(archive, deployment, session, host, log_path):
         )
         send_and_wait(b" ", b"HORTON COMMANDER", b"Q quit")
 
-        # The editor is still a separate transient. Follow Horton's displayed
-        # CCP commands, save with real EDIT.COM, then consume /R and reopen.
-        send_and_wait(b"e", b"Session saved to B:HORTON.RSM.", b"A>")
+        # The editor is still a separate transient. Use the explicit CCP
+        # command action, run EDIT.COM, then consume /R and reopen.
+        send_and_wait(b"!", b"CCP command, up to 64 chars")
+        send_and_wait(b"A:EDIT HELLO.TXT\r", b"Session saved to B:HORTON.RSM.", b"A>")
         send_and_wait(b"B:\r", b"B>")
-        send_and_wait(
-            b"A:EDIT HELLO.TXT\r",
-            b"EDIT HELLO   .TXT",
-            b"Native Triptych edit and copy test.",
-        )
+        send_and_wait(b"A:EDIT HELLO.TXT\r", b"EDIT HELLO   .TXT", b"Native Triptych edit and copy test.")
         send_and_wait(b"x\x13", b"Saved")
         send_and_wait(b"\x11", b"B>")
         send_and_wait(b"A:\r", b"A>")
-        send_and_wait(b"A:HORTON /R\r", b"Resume this session? Y/N:")
+        send_and_wait(b"A:HC /R\r", b"Resume this session? Y/N:")
         send_and_wait(
             b"y",
             b"HORTON COMMANDER",

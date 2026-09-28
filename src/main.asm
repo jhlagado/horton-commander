@@ -4,6 +4,9 @@
 ; Triptych host interface is used by the guest program.
 ORG $0100
 
+CACHSTR EQU 13
+CACHLEN EQU 234
+
 ENTRY:
     CALL RSMARGS
     CP $FF
@@ -36,6 +39,10 @@ ENTQUIT:
 
 KEYLOOP:
     CALL READKEY
+    CP 'e'
+    JP Z,EDINLIN
+    CP 'E'
+    JP Z,EDINLIN
     CP 'q'
     RET Z
     CP 'Q'
@@ -72,10 +79,6 @@ KEYLOOP:
     JP Z,DODELETE
     CP 'D'
     JP Z,DODELETE
-    CP 'e'
-    JP Z,DOEDIT
-    CP 'E'
-    JP Z,DOEDIT
     CP '!'
     JP Z,DORUN
     CP 27
@@ -310,51 +313,25 @@ SDDONE:
 
 ; Copy the selected cached 8.3 name into a private FCB, then open and size it.
 ; BDOS returns ordinary open failures; fatal media errors still warm-boot.
-DOVIEW:
-    LD A,(ACTIVE)
-    OR A
-    JR NZ,VIEWRSEL
-    LD A,(SELL)
-    LD B,A
-    LD A,(ROWL)
-    CP B
+; E returns to this in-process editor block before redrawing the panels.
+EDINLIN:
+    CALL SELFCB
     JP C,NOSELECT
-    JP Z,NOSELECT
-    LD A,(FCBL)
-    LD (VFCB),A
-    LD A,(SELL)
-    LD HL,CACHEL
-    JR VIEWNAME
-VIEWRSEL:
-    LD A,(SELR)
-    LD B,A
-    LD A,(ROWR)
-    CP B
-    JP C,NOSELECT
-    JP Z,NOSELECT
-    LD A,(FCBR)
-    LD (VFCB),A
-    LD A,(SELR)
-    LD HL,CACHER
-VIEWNAME:
-    LD DE,11
-    OR A
-    JR Z,VIEWCOPY
-VIEWSKIP:
-    ADD HL,DE
-    DEC A
-    JR NZ,VIEWSKIP
-VIEWCOPY:
-    LD DE,VFCB+1
-    LD BC,11
+    LD HL,VFCB
+    LD DE,$4C00
+    LD BC,36
     LDIR
-    LD HL,VFCB+12
-    LD B,24
+    CALL $3400
     XOR A
-VCLR:
-    LD (HL),A
-    INC HL
-    DJNZ VCLR
+    LD (MSG),A
+    CALL REFRESH
+    CALL RESTORE
+    CALL DRAW
+    JP KEYLOOP
+
+DOVIEW:
+    CALL SELFCB
+    JP C,NOSELECT
     LD DE,VFCB
     LD C,15
     CALL 5
@@ -533,6 +510,59 @@ NOSELECT:
     CALL DRAW
     JP KEYLOOP
 
+; Build VFCB from the active panel selection without touching the drive.
+; Carry means the panel has no selected row.
+SELFCB:
+    LD A,(ACTIVE)
+    OR A
+    JP NZ,SELCBRT
+    LD A,(SELL)
+    LD B,A
+    LD A,(ROWL)
+    CP B
+    JR C,SELCBNO
+    JR Z,SELCBNO
+    LD A,(FCBL)
+    LD (VFCB),A
+    LD A,(SELL)
+    LD HL,CACHEL
+    JR SELCBNM
+SELCBRT:
+    LD A,(SELR)
+    LD B,A
+    LD A,(ROWR)
+    CP B
+    JR C,SELCBNO
+    JR Z,SELCBNO
+    LD A,(FCBR)
+    LD (VFCB),A
+    LD A,(SELR)
+    LD HL,CACHER
+SELCBNM:
+    LD DE,CACHSTR
+    OR A
+    JR Z,SELCBCP
+SELCBSK:
+    ADD HL,DE
+    DEC A
+    JR NZ,SELCBSK
+SELCBCP:
+    LD DE,VFCB+1
+    LD BC,11
+    LDIR
+    LD HL,VFCB+12
+    LD B,24
+    XOR A
+VCLR:
+    LD (HL),A
+    INC HL
+    DJNZ VCLR
+    OR A
+    RET
+SELCBNO:
+    SCF
+    RET
+
 ; Read one nonzero byte with CP/M BDOS direct console input, function 6.
 ; Clobbers AF, BC, DE, HL. No console echo is assumed.
 READKEY:
@@ -543,7 +573,8 @@ READKEY:
     JR Z,READKEY
     RET
 
-; Refresh each panel independently. Each cache holds only eighteen names.
+; Refresh each panel independently. Each cache holds eighteen names and their
+; rounded-up logical KiB sizes.
 REFRESH:
     XOR A
     LD (SZVALID),A
@@ -572,8 +603,8 @@ REFRESH:
     CALL SCAN
     RET
 
-; Scan current user on one explicitly selected drive. Only EX=0 entries are
-; listed; the selected two-MiB DPB has EXM=0, so that is one row per file.
+; Scan current user on one explicitly selected drive. Only EX=0/S2=0 entries
+; are listed; the selected two-MiB DPB has EXM=0, so that is one row per file.
 ; SCNSTA points to the page start; SCNCNT/SCNROW receive totals.
 SCAN:
     LD HL,(SCNCAC)
@@ -592,7 +623,7 @@ SCAN:
     LD (SCNCOUNT+1),A
 
     LD HL,(CACHEP)
-    LD B,198
+    LD B,CACHLEN
     LD A,' '
 CLRCACH:
     LD (HL),A
@@ -611,11 +642,17 @@ CLRCACH:
 
 SCNLOOP:
     CALL ENTRYADR
+    LD (SCZDIR),HL
     LD A,(HL)
     OR A
     JR NZ,SCNNEXT
     LD DE,12
     ADD HL,DE
+    LD A,(HL)
+    OR A
+    JR NZ,SCNNEXT
+    INC HL
+    INC HL
     LD A,(HL)
     OR A
     JR NZ,SCNNEXT
@@ -659,6 +696,129 @@ SCNDONE:
     LD A,(SCNROWS)
     LD DE,(SCNROW)
     LD (DE),A
+    CALL SCNSZES
+    RET
+
+; Locate the editor's saved VFCB name again after a file grows or CP/M
+; reallocates its directory entry. Search all pages of only the active panel.
+RESTORE:
+    LD HL,0
+    LD A,(ACTIVE)
+    OR A
+    JR NZ,RESRIGHT
+    LD (PAGEL),HL
+    LD HL,PAGEL
+    LD (SCNSTA),HL
+    LD HL,COUNTL
+    LD (SCNCNT),HL
+    LD HL,ROWL
+    LD (SCNROW),HL
+    LD HL,CACHEL
+    LD (SCNCAC),HL
+    LD HL,FCBL
+    LD (SCNFCB),HL
+    JR RESCAN
+RESRIGHT:
+    LD (PAGER),HL
+    LD HL,PAGER
+    LD (SCNSTA),HL
+    LD HL,COUNTR
+    LD (SCNCNT),HL
+    LD HL,ROWR
+    LD (SCNROW),HL
+    LD HL,CACHER
+    LD (SCNCAC),HL
+    LD HL,FCBR
+    LD (SCNFCB),HL
+RESCAN:
+    CALL SCAN
+    LD A,(ACTIVE)
+    OR A
+    JR NZ,RESRSCAN
+    LD A,(ROWL)
+    LD (SCNROWS),A
+    LD HL,CACHEL
+    JR RESROWS
+RESRSCAN:
+    LD A,(ROWR)
+    LD (SCNROWS),A
+    LD HL,CACHER
+RESROWS:
+    LD (DSTPTR),HL
+    XOR A
+    LD (ROWIDX),A
+RESROW:
+    LD A,(SCNROWS)
+    OR A
+    JR Z,RESNEXT
+    LD HL,(DSTPTR)
+    LD DE,VFCB+1
+    LD B,11
+RESBYTE:
+    LD A,(DE)
+    CP (HL)
+    JR NZ,RESNOM
+    INC HL
+    INC DE
+    DJNZ RESBYTE
+    LD A,(ACTIVE)
+    OR A
+    JR NZ,RESSELR
+    LD A,(ROWIDX)
+    LD (SELL),A
+    RET
+RESSELR:
+    LD A,(ROWIDX)
+    LD (SELR),A
+    RET
+RESNOM:
+    LD HL,(DSTPTR)
+    LD DE,CACHSTR
+    ADD HL,DE
+    LD (DSTPTR),HL
+    LD A,(ROWIDX)
+    INC A
+    LD (ROWIDX),A
+    LD A,(SCNROWS)
+    DEC A
+    LD (SCNROWS),A
+    JR RESROW
+RESNEXT:
+    LD A,(ACTIVE)
+    OR A
+    JR NZ,RESRGT
+    LD HL,(PAGEL)
+    LD DE,18
+    ADD HL,DE
+    LD (PAGEL),HL
+    LD DE,(COUNTL)
+    OR A
+    SBC HL,DE
+    JP C,RESCAN
+    JR RESMISS
+RESRGT:
+    LD HL,(PAGER)
+    LD DE,18
+    ADD HL,DE
+    LD (PAGER),HL
+    LD DE,(COUNTR)
+    OR A
+    SBC HL,DE
+    JP C,RESCAN
+RESMISS:
+    LD HL,0
+    LD A,(ACTIVE)
+    OR A
+    JR NZ,RESMISRT
+    LD (PAGEL),HL
+    LD (SELL),A
+    JR RESMISUP
+RESMISRT:
+    LD (PAGER),HL
+    XOR A
+    LD (SELR),A
+RESMISUP:
+    CALL REFRESH
     RET
 
 ; Return HL at the 32-byte directory slot selected in HIT.
@@ -682,7 +842,7 @@ ENTADD:
 STOREADR:
     LD A,(ROWIDX)
     LD HL,0
-    LD DE,11
+    LD DE,CACHSTR
     OR A
     JR Z,STOREDST
 STOREOFF:
@@ -698,6 +858,10 @@ STOREDST:
     LD DE,(DSTPTR)
     LD BC,11
     LDIR
+    XOR A
+    LD (DE),A
+    INC DE
+    LD (DE),A
     RET
 
 ; Draw a complete 80x24 panel screen. ANSI output is the Triptych terminal
@@ -746,14 +910,16 @@ DRAWLOOP:
     LD DE,REVERSE
     CALL PRINTS
     CALL LEFTNAME
-    LD DE,PAD26
+    CALL LEFTSIZE
+    LD DE,PAD20
     CALL PRINTS
     LD DE,NORMAL
     CALL PRINTS
     JR LEFTDONE
 LEFTPLN:
     CALL LEFTNAME
-    LD DE,PAD26
+    CALL LEFTSIZE
+    LD DE,PAD20
     CALL PRINTS
 LEFTDONE:
     LD A,'|'
@@ -772,14 +938,16 @@ LEFTDONE:
     LD DE,REVERSE
     CALL PRINTS
     CALL RGTNAME
-    LD DE,PAD26
+    CALL RGTSIZE
+    LD DE,PAD20
     CALL PRINTS
     LD DE,NORMAL
     CALL PRINTS
     JR RGHTDON
 RIGHTPLN:
     CALL RGTNAME
-    LD DE,PAD26
+    CALL RGTSIZE
+    LD DE,PAD20
     CALL PRINTS
 RGHTDON:
     LD A,'|'
@@ -787,11 +955,11 @@ RGHTDON:
     LD DE,CRLF
     CALL PRINTS
     LD HL,(LPTR)
-    LD DE,11
+    LD DE,CACHSTR
     ADD HL,DE
     LD (LPTR),HL
     LD HL,(RPTR)
-    LD DE,11
+    LD DE,CACHSTR
     ADD HL,DE
     LD (RPTR),HL
     LD A,(DRAWROW)
@@ -1047,7 +1215,7 @@ DSRSEL:
     LD A,(SELR)
     LD HL,CACHER
 DSCOPYN:
-    LD DE,11
+    LD DE,CACHSTR
     OR A
     JR Z,DSCOPY
 DSSKIP:
@@ -1659,7 +1827,7 @@ BIGMSG:
 NOSELMSG:
     DB "Select a file before viewing.",13,10,"$"
 FOOTER:
-    DB "E edit  ! command  R rename  M move  D delete  Q quit",13,10,"$"
+    DB "E edit here  ! CCP command  R rename  M move  D delete  Q quit",13,10,"$"
 CPASKMSG:
     DB "Copy selected name to the other panel's drive? Y/N",13,10,"$"
 CPOKMSG:
@@ -1727,7 +1895,7 @@ RSMIOMSG:
 RSMUSRMG:
     DB "Handoff currently supports CP/M user area 0 only.",13,10,"$"
 RSMUSAGE:
-    DB "Usage: HORTON or HORTON /R",13,10,"$"
+    DB "Usage: HC or HC /R",13,10,"$"
 RSMNOFIL:
     DB "No saved session on B: in user area 0.",13,10,"$"
 RSMBADFL:
@@ -1756,14 +1924,6 @@ RSMCAN:
     DB "Resume canceled; session kept.",13,10,"$"
 RSMDLRO:
     DB "Session file is read-only; it has not been consumed.",13,10,"$"
-RSMEDIT1:
-    DB "Session saved to B:HORTON.RSM.",13,10,"At the CCP, enter:",13,10,"$"
-RSMEDIT2:
-    DB "A:EDIT $"
-RSMEDIT3:
-    DB 13,10,"After Edit returns, restore the previous drive, then enter:",13,10,"$"
-RSMEDIT4:
-    DB "A:HORTON /R",13,10,"$"
 RSMCMDRW:
     DB 27,"[22;1H",27,"[2K","CCP command, up to 64 chars; Enter accepts, Esc cancels.",13,10,"$"
 RSMCMDLN:
@@ -1773,7 +1933,7 @@ RSMOUT1:
 RSMOUT2:
     DB 13,10,"After the command returns, restore the previous drive, then enter:",13,10,"$"
 RSMOUT3:
-    DB "A:HORTON /R",13,10,"$"
+    DB "A:HC /R",13,10,"$"
 RSMMAGIC:
     DB "HORTONRS"
 RSMFINAL:
@@ -1814,8 +1974,6 @@ VFOOT:
     DB "Space or >: next page   <: previous   H: hex   Esc/Q: return",13,10,"$"
 HFOOT:
     DB "Space or >: next page   <: previous   T: text   Esc/Q: return",13,10,"$"
-PAD26:
-    DB "                          ","$"
 CRLF:
     DB 13,10,"$"
 
@@ -1831,9 +1989,9 @@ DMA:
 VDMA:
     DS 128
 CACHEL:
-    DS 198
+    DS CACHLEN
 CACHER:
-    DS 198
+    DS CACHLEN
 VFCB:
     DB 0,"           "
     DS 24
@@ -2743,17 +2901,8 @@ DELFAIL:
     LD A,28
     JP CPREPORT
 
-; The editor and CCP run-command paths deliberately leave this transient and
-; relaunch it. CP/M supplies no ordinary child-process return to this instance.
-DOEDIT:
-    CALL SELCHECK
-    JP NZ,NOSELECT
-    LD A,1
-    LD (RSMKIND),A
-    CALL RSMSTORE
-    OR A
-    JP NZ,RSMHFAIL
-    JP RSMEDOUT
+; CP/M command handoff deliberately leaves this transient and relaunches it.
+; CP/M supplies no ordinary child-process return to this instance.
 DORUN:
     CALL RSMCIN
     OR A
@@ -2858,65 +3007,8 @@ RSMCANC:
     XOR A
     RET
 
-; Show the literal CCP steps. The command is left for the user to enter at
-; CCP; the transient program has no documented way to submit it itself.
-RSMEDOUT:
-    LD DE,RSMEDIT1
-    CALL PRINTS
-    LD A,(ACTIVE)
-    OR A
-    JP NZ,RSMEDRGT
-    LD A,(VDMA+13)
-    LD HL,VDMA+16
-    JP RSMEDNAM
-RSMEDRGT:
-    LD A,(VDMA+14)
-    LD HL,VDMA+27
-RSMEDNAM:
-    LD (NAMEPTR),HL
-    ADD A,64
-    CALL PUTCH
-    LD A,':'
-    CALL PUTCH
-    LD DE,CRLF
-    CALL PRINTS
-    LD DE,RSMEDIT2
-    CALL PRINTS
-    CALL RSMCMDNM
-    LD DE,RSMEDIT3
-    CALL PRINTS
-    CALL RSMPRDRV
-    LD DE,RSMEDIT4
-    CALL PRINTS
-    RET
-RSMCMDNM:
-    LD HL,(NAMEPTR)
-    LD B,8
-RSMCNBAS:
-    LD A,(HL)
-    CP ' '
-    JR Z,RSMCNEND
-    CALL PUTCH
-    INC HL
-    DJNZ RSMCNBAS
-RSMCNEND:
-    LD HL,(NAMEPTR)
-    LD DE,8
-    ADD HL,DE
-    LD A,(HL)
-    CP ' '
-    RET Z
-    LD A,'.'
-    CALL PUTCH
-    LD B,3
-RSMCNEXT:
-    LD A,(HL)
-    CP ' '
-    RET Z
-    CALL PUTCH
-    INC HL
-    DJNZ RSMCNEXT
-    RET
+; Show the literal CCP command and resume instructions. The transient cannot
+; submit the command to CCP or remain resident while it runs.
 RSMCDOUT:
     LD DE,RSMOUT1
     CALL PRINTS
@@ -3228,7 +3320,7 @@ RSMCPNAM:
     LD B,A
     OR A
     JP Z,RSMCNCOP
-    LD DE,11
+    LD DE,CACHSTR
 RSMCNOFF:
     ADD HL,DE
     DJNZ RSMCNOFF
@@ -3886,6 +3978,36 @@ RSMPSRE:
     CALL PRINTS
     RET
 
+; Print the 8.3 name at NAMEPTR. Shared by the saved-session summary.
+RSMCMDNM:
+    LD HL,(NAMEPTR)
+    LD B,8
+RSMCNBAS:
+    LD A,(HL)
+    CP ' '
+    JR Z,RSMCNEND
+    CALL PUTCH
+    INC HL
+    DJNZ RSMCNBAS
+RSMCNEND:
+    LD HL,(NAMEPTR)
+    LD DE,8
+    ADD HL,DE
+    LD A,(HL)
+    CP ' '
+    RET Z
+    LD A,'.'
+    CALL PUTCH
+    LD B,3
+RSMCNEXT:
+    LD A,(HL)
+    CP ' '
+    RET Z
+    CALL PUTCH
+    INC HL
+    DJNZ RSMCNEXT
+    RET
+
 ; Build clean read/write FCBs for the highlighted cache entry and target drive.
 CPBUILD:
     LD A,(ACTIVE)
@@ -3915,7 +4037,7 @@ CPINDEX:
     OR A
     JR Z,CPNAMEST
     LD B,A
-    LD DE,11
+    LD DE,CACHSTR
 CPIDXLP:
     ADD HL,DE
     DJNZ CPIDXLP

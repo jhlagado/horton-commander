@@ -25,12 +25,14 @@ const ascii = (value) => Buffer.from(value, "ascii");
 const descriptor = JSON.parse(
   await readFile(resolve(root, "site/releases/preview/system.json"), "utf8"),
 );
+const previewHortonBytes = 12_045;
+const previewHortonSha256 =
+  "368ef0c84168cdce651da92d10a582c9efed56a8687c67e99c49ce46de77fc59";
 const image = Buffer.from(
   await readFile(
     resolve(root, "site/releases/preview", descriptor.image.asset),
   ),
 );
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
 assert.equal(descriptor.profile, "triptych-cpu-v0.1-2m-n04");
 assert.deepEqual(descriptor.workDrives, ["B", "C", "D"]);
 assert.equal(descriptor.image.bytes, 2_097_152);
@@ -50,13 +52,19 @@ assert.deepEqual(
 const aDisk = new CpmDisk(Uint8Array.from(image));
 try {
   assert.ok(aDisk.file_names().includes("HORTON.COM"));
+  const previewHorton = Buffer.from(aDisk.read_file("HORTON.COM"));
+  assert.equal(aDisk.file_records("HORTON.COM"), 95);
+  assert.equal(previewHorton.length, 95 * 128);
   assert.equal(
-    aDisk.file_records("HORTON.COM"),
-    Math.ceil(hortonBytes.length / 128),
+    hash(previewHorton.subarray(0, previewHortonBytes)),
+    previewHortonSha256,
+    "the hosted image contains the accepted increment-11 executable",
   );
-  assert.deepEqual(
-    Buffer.from(aDisk.read_file("HORTON.COM")).subarray(0, hortonBytes.length),
-    hortonBytes,
+  assert.ok(
+    previewHorton
+      .subarray(previewHortonBytes)
+      .every((byte) => byte === 0x1a),
+    "the final CP/M record contains text padding",
   );
 } finally {
   aDisk.free();

@@ -33,13 +33,13 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
   allowDirty: false,
 });
 assert.equal(systemBuild.descriptor.residentProfile, "triptych-cpu-v0.1-2m-n04");
-const horton = Buffer.from(await readFile(resolve(root, "dist/HORTON.COM")));
+const horton = Buffer.from(await readFile(resolve(root, "dist/HC.COM")));
 
 const disk = new CpmDisk(Uint8Array.from(base));
 let image;
 try {
-  assert.ok(!disk.file_names().includes("HORTON.COM"), "base image has no old Horton binary");
-  disk.add_import("HORTON.COM", Uint8Array.from(horton));
+  assert.ok(!disk.file_names().includes("HC.COM"), "base image has no HC.COM executable");
+  disk.add_import("HC.COM", Uint8Array.from(horton));
   image = Buffer.from(disk.export_candidate());
 } finally {
   disk.free();
@@ -52,10 +52,10 @@ assert.deepEqual(
 );
 const verified = new CpmDisk(Uint8Array.from(image));
 try {
-  assert.ok(verified.file_names().includes("HORTON.COM"));
-  assert.equal(verified.file_records("HORTON.COM"), Math.ceil(horton.length / 128));
+  assert.ok(verified.file_names().includes("HC.COM"));
+  assert.equal(verified.file_records("HC.COM"), Math.ceil(horton.length / 128));
   assert.deepEqual(
-    Buffer.from(verified.read_file("HORTON.COM")).subarray(0, horton.length),
+    Buffer.from(verified.read_file("HC.COM")).subarray(0, horton.length),
     horton,
     "preview image contains the exact built Horton executable",
   );
@@ -68,7 +68,7 @@ const imageAsset = `horton-preview-${imageSha256}.img`;
 const descriptor = {
   schema: "triptych-external-system-v1",
   name: "Horton Commander preview",
-  instruction: "Type HORTON to start Horton Commander. B, C and D are persistent writable disks.",
+  instruction: "Type HC to start Horton Commander. B, C and D are persistent writable disks.",
   profile: "triptych-cpu-v0.1-2m-n04",
   image: {
     asset: imageAsset,

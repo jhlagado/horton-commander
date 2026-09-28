@@ -54,7 +54,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 assert.equal(systemBuild.descriptor.configuredCount, 4);
 assert.equal(systemBuild.descriptor.residentProfile, "triptych-cpu-v0.1-2m-n04");
 
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 const editBytes = await readFile(resolve(triptychRoot, "third_party/edit/EDIT.COM"));
 const editManifest = JSON.parse(
   await readFile(resolve(triptychRoot, "third_party/edit/manifest.json"), "utf8"),
@@ -64,7 +64,7 @@ assert.equal(editBytes.length, editManifest.bytes);
 assert.equal(hash(editBytes), editManifest.sha256);
 
 const aImage = makeDisk([
-  ["HORTON.COM", hortonBytes],
+  ["HC.COM", hortonBytes],
   ["EDIT.COM", editBytes],
 ]);
 aImage.set(systemBuild.system, 0);
@@ -160,7 +160,7 @@ try {
   );
   try {
     const [a, b, c, d] = opened;
-    assert.equal(a.file_names().includes("HORTON.COM"), true);
+    assert.equal(a.file_names().includes("HC.COM"), true);
     assert.equal(a.file_names().includes("EDIT.COM"), true);
     assert.equal(b.file_names().includes("HELLO.TXT"), true);
     assert.equal(b.file_names().includes("HORTON.RSM"), false);

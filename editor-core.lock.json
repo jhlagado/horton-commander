@@ -1,0 +1,22 @@
+{
+  "schema": "z80-editor-core-lock-v1",
+  "name": "edit-document-core",
+  "version": 1,
+  "repository": "https://github.com/jhlagado/edit.git",
+  "revision": "63762528365f8db04464d2fe9bcf4cc4e8091a68",
+  "license": "GPL-3.0-or-later",
+  "modules": [
+    {
+      "file": "editor-document.asm",
+      "sha256": "5f74b04c2108da4f97907e4e1252adfb34f5f22ffb1e4a33c5cc2c7ec8af0f89"
+    },
+    {
+      "file": "editor-buffer.asm",
+      "sha256": "6e22329a51aeb384e2417a254517cb1ec046ef602e03067af75e2d75a1b2c158"
+    },
+    {
+      "file": "editor-navigation.asm",
+      "sha256": "14a952caa3931fdc978ac1b2d453075a7bf7f8119996c563289b7a3b883163c2"
+    }
+  ]
+}

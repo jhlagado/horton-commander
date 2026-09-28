@@ -34,10 +34,10 @@ const ccpLabels = systemBuild.evidence.residents.ccp.labels;
 const bdosLabels = systemBuild.evidence.residents.bdos.labels;
 const hortonStartAddress = 0x0100;
 
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 const sourceBytes = await readFile(resolve(root, "src/main.asm"));
 const debugMap = JSON.parse(
-  await readFile(resolve(root, "dist/HORTON.d8.json"), "utf8"),
+  await readFile(resolve(root, "dist/HC.d8.json"), "utf8"),
 );
 const symbols = debugMap.files["main.asm"].symbols;
 const symbol = (name) => {
@@ -129,7 +129,7 @@ function createMachine({
   cFiles = [],
   dFiles = [],
 } = {}) {
-  const aImage = bootImage(makeDisk([["HORTON.COM", hortonBytes]]));
+  const aImage = bootImage(makeDisk([["HC.COM", hortonBytes]]));
   const images = [
     aImage,
     makeDisk(bFiles),
@@ -250,7 +250,7 @@ function createMachine({
 
   function launch() {
     waitPrompt("A");
-    send(ascii("A:HORTON\r"), "launch HORTON from the CCP");
+    send(ascii("A:HC\r"), "launch HORTON from the CCP");
     return waitPanel("Horton panels appear");
   }
 
@@ -292,13 +292,17 @@ function createMachine({
         "resident CCP stack guard is intact before the workload",
       );
       const hortonExpected = makeCanary(sp - ccpLabels.STKBASE, 0x35);
-      const bdosExpected = makeCanary(
-        bdosLabels.STKTOP - bdosLabels.STKBASE,
-        0x69,
-      );
+      const { pc: currentPc, sp: currentSp } = cpuState(cpu);
+      const bdosCanaryTop =
+        !isHortonPc(currentPc) &&
+        currentSp >= bdosLabels.STKBASE &&
+        currentSp <= bdosLabels.STKTOP
+          ? currentSp
+          : bdosLabels.STKTOP;
+      const bdosExpected = makeCanary(bdosCanaryTop - bdosLabels.STKBASE, 0x69);
       cpu.write_ram(ccpLabels.STKBASE, hortonExpected);
       cpu.write_ram(bdosLabels.STKBASE, bdosExpected);
-      stackCanaries = { hortonExpected, bdosExpected, entrySp: sp };
+      stackCanaries = { hortonExpected, bdosExpected, entrySp: sp, bdosCanaryTop };
       return sp;
     },
     beginStackTracking() {
@@ -332,7 +336,7 @@ function createMachine({
       const bdos = inspectStackCanary(
         cpu,
         bdosLabels.STKBASE,
-        bdosLabels.STKTOP,
+        stackCanaries.bdosCanaryTop,
         stackCanaries.bdosExpected,
         "BDOS resident",
       );

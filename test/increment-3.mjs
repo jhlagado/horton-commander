@@ -32,7 +32,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 });
 assert.equal(systemBuild.descriptor.residentProfile, profileId);
 assert.equal(systemBuild.descriptor.configuredCount, 4);
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 
 function makeDisk(files = []) {
   const disk = CpmDisk.create_two_mib();
@@ -163,7 +163,7 @@ function createMachine(drives) {
 
   function launch() {
     waitPrompt("A");
-    send(ascii("A:HORTON\r"), "launch HORTON from A:");
+    send(ascii("A:HC\r"), "launch HORTON from A:");
     return waitPanel("Horton panel screen");
   }
 
@@ -256,7 +256,7 @@ partialTextBytes.write("PARTIAL TEXT\r\n", 0, "ascii");
 partialTextBytes[31] = 0x1a;
 
 const sourceA = makeDisk([
-  ["HORTON.COM", hortonBytes],
+  ["HC.COM", hortonBytes],
   ["COPYTXT.TXT", textBytes],
   ["TEXTOK.TXT", secondTextBytes],
   ["COPYBIN.BIN", binaryBytes],
@@ -292,7 +292,7 @@ originalB.free();
 const machine = createMachine(drives);
 try {
   machine.waitPrompt("A");
-  machine.send(ascii("A:HORTON\r"), "launch HORTON from A:");
+  machine.send(ascii("A:HC\r"), "launch HORTON from A:");
   const recoveryAt = 0;
   machine.waitFor("startup offers interrupted copy cleanup", (fresh) =>
     messageAndFooter(fresh, "Interrupted copy found on drive D: HCOPY.$$$"), recoveryAt,
@@ -344,7 +344,7 @@ try {
     assert.deepEqual(readFileFrom(machine.cpu, 0, name), expectedFiles[name], `${name} source remains intact`);
   const hortonRecords = Buffer.alloc(Math.ceil(hortonBytes.length / 128) * 128, 0x1a);
   hortonBytes.copy(hortonRecords);
-  assert.deepEqual(readFileFrom(machine.cpu, 0, "HORTON.COM"), hortonRecords);
+  assert.deepEqual(readFileFrom(machine.cpu, 0, "HC.COM"), hortonRecords);
   assert.ok(!fileNamesFrom(machine.cpu, 1).includes("HCOPY.$$$"));
   assert.deepEqual(Buffer.from(machine.cpu.export_drive_checkpoint(2)), untouchedC);
 } finally {
@@ -354,7 +354,7 @@ try {
 // A retained temporary must block another copy without being overwritten.
 const tempCollisionA = bootImage(
   makeDisk([
-    ["HORTON.COM", hortonBytes],
+    ["HC.COM", hortonBytes],
     ["SOURCE.BIN", Buffer.alloc(128, 0x6d)],
   ]),
 );
@@ -399,7 +399,7 @@ try {
 // made, then sequential write returns the ordinary disk-full status.
 const fullA = bootImage(
   makeDisk([
-    ["HORTON.COM", hortonBytes],
+    ["HC.COM", hortonBytes],
     ["SOURCE.BIN", Buffer.alloc(128, 0xa5)],
   ]),
 );
@@ -430,7 +430,7 @@ try {
 const partialSource = Buffer.alloc(17 * 128, 0xa5);
 const partialFullA = bootImage(
   makeDisk([
-    ["HORTON.COM", hortonBytes],
+    ["HC.COM", hortonBytes],
     ["SOURCE.BIN", partialSource],
   ]),
 );
@@ -481,7 +481,7 @@ try {
 // Make File call; Horton must preserve the source and the whole target image.
 const dirFullA = bootImage(
   makeDisk([
-    ["HORTON.COM", hortonBytes],
+    ["HC.COM", hortonBytes],
     ["SOURCE.BIN", Buffer.alloc(128, 0x3c)],
   ]),
 );

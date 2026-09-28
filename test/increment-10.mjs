@@ -25,7 +25,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 assert.equal(systemBuild.descriptor.residentProfile, "triptych-cpu-v0.1-2m-n04");
 assert.equal(systemBuild.descriptor.configuredCount, 4);
 const hortonBytes = await import("node:fs/promises").then(({ readFile }) =>
-  readFile(resolve(root, "dist/HORTON.COM")),
+  readFile(resolve(root, "dist/HC.COM")),
 );
 
 function makeDisk(files = []) {
@@ -65,7 +65,7 @@ assert.equal(makeEmptyFileCom.length, 53);
 const largeRecordCount = 16_000;
 const initialDrives = [
   bootImage(makeDisk([
-    ["HORTON.COM", hortonBytes],
+    ["HC.COM", hortonBytes],
     ["ONE.DAT", Buffer.alloc(128, 0x31)],
     ["MANY.DAT", Buffer.alloc(129 * 128, 0x32)],
     ["ZZZERO.COM", makeEmptyFileCom],
@@ -168,11 +168,11 @@ try {
     verifyEmpty.free();
   }
 
-  send(ascii("A:HORTON\r"), "launch Horton after creating zero-record file");
+  send(ascii("A:HC\r"), "launch Horton after creating zero-record file");
   waitFor("initial panels", (fresh) => fresh.includes(ascii("Q quit")));
   assert.ok(terminal.text().includes("Tab panel"));
   assert.ok(terminal.text().includes("Size:"));
-  assert.ok(isSelected("HORTON"));
+  assert.ok(isSelected("HC"));
   assertSize(Math.ceil(hortonBytes.length / 128));
 
   moveDownUntilSelected("ONE");

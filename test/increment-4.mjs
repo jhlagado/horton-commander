@@ -28,9 +28,9 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 });
 assert.equal(systemBuild.descriptor.residentProfile, profileId);
 assert.equal(systemBuild.descriptor.configuredCount, 4);
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 const debugMap = JSON.parse(
-  await readFile(resolve(root, "dist/HORTON.d8.json"), "utf8"),
+  await readFile(resolve(root, "dist/HC.d8.json"), "utf8"),
 );
 const cacheLeft = debugMap.files["main.asm"].symbols.find(
   (symbol) => symbol.name === "CACHEL",
@@ -169,7 +169,7 @@ function createMachine(dataDrives) {
 
   function launch() {
     waitPrompt("A");
-    send(ascii("A:HORTON\r"), "launch HORTON from A:");
+    send(ascii("A:HC\r"), "launch HORTON from A:");
     waitPanel("Horton panel screen");
   }
 
@@ -330,7 +330,7 @@ function createMachine(dataDrives) {
 {
   const source = ascii("REPLACE AFTER OVERFLOW\r\n\x1a");
   const machine = createMachine([
-    bootImage(makeDisk([["HORTON.COM", hortonBytes], ["SOURCE.TXT", source]])),
+    bootImage(makeDisk([["HC.COM", hortonBytes], ["SOURCE.TXT", source]])),
     makeDisk(),
     makeDisk(),
     makeDisk(),
@@ -341,7 +341,7 @@ function createMachine(dataDrives) {
     machine.beginRename();
     machine.overflowRenameAndBackspace("TOOLONG99.TXT");
     machine.finishRename("FIXED.TXT", "File renamed; panel refreshed.");
-    assert.deepEqual(fileNamesFrom(machine.cpu, 0).sort(), ["FIXED.TXT", "HORTON.COM"]);
+    assert.deepEqual(fileNamesFrom(machine.cpu, 0).sort(), ["FIXED.TXT", "HC.COM"]);
     assert.deepEqual(readFileFrom(machine.cpu, 0, "FIXED.TXT"), storedRecords(source));
   } finally {
     machine.free();
@@ -424,7 +424,7 @@ hortonBytes.copy(hortonRecords);
   const drives = [
     bootImage(
       makeDisk([
-        ["HORTON.COM", hortonBytes],
+        ["HC.COM", hortonBytes],
         ["KEEP.TXT", keepBytes],
         ["MULTI.BIN", multiBytes],
       ]),
@@ -440,11 +440,11 @@ hortonBytes.copy(hortonRecords);
     machine.arrowDown("MULTI   .BIN");
     machine.beginRename();
     machine.finishRename("RENAMED.BIN", "File renamed; panel refreshed.");
-    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HORTON.COM", "KEEP.TXT", "RENAMED.BIN"]);
+    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HC.COM", "KEEP.TXT", "RENAMED.BIN"]);
     assert.equal(countDirectoryName(machine.cpu, 0, "RENAMED.BIN"), 2, "both logical extents were renamed");
     assert.deepEqual(readFileFrom(machine.cpu, 0, "RENAMED.BIN"), multiBytes);
     assert.deepEqual(readFileFrom(machine.cpu, 0, "KEEP.TXT"), storedRecords(keepBytes));
-    assert.deepEqual(readFileFrom(machine.cpu, 0, "HORTON.COM"), hortonRecords);
+    assert.deepEqual(readFileFrom(machine.cpu, 0, "HC.COM"), hortonRecords);
   } finally {
     machine.free();
   }
@@ -455,7 +455,7 @@ hortonBytes.copy(hortonRecords);
   const drives = [
     bootImage(
       makeDisk([
-        ["HORTON.COM", hortonBytes],
+        ["HC.COM", hortonBytes],
         ["SOURCE.TXT", ascii("SOURCE CONTENT\r\n\x1a")],
         ["TAKEN.TXT", ascii("DO NOT REPLACE\r\n\x1a")],
       ]),
@@ -496,7 +496,7 @@ hortonBytes.copy(hortonRecords);
 
     // The live page cache is deliberately made stale. The guest still reaches
     // the real BDOS rename call, which must fail without changing any file.
-    machine.cpu.write_ram(cacheLeft + 11, ascii("GONE    TXT"));
+    machine.cpu.write_ram(cacheLeft + 13, ascii("GONE    TXT"));
     machine.beginRename();
     machine.finishRename("FRESH.TXT", "Rename failed; the file may have changed or the drive is protected.");
     assert.deepEqual(Buffer.from(machine.cpu.export_drive_checkpoint(0)), start[0]);
@@ -505,7 +505,7 @@ hortonBytes.copy(hortonRecords);
 
     machine.beginRename();
     machine.finishRename("ABCDEFGH.XYZ", "File renamed; panel refreshed.");
-    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HORTON.COM", "ABCDEFGH.XYZ", "TAKEN.TXT"]);
+    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HC.COM", "ABCDEFGH.XYZ", "TAKEN.TXT"]);
     assert.deepEqual(
       readFileFrom(machine.cpu, 0, "ABCDEFGH.XYZ"),
       storedRecords(ascii("SOURCE CONTENT\r\n\x1a")),
@@ -520,7 +520,7 @@ hortonBytes.copy(hortonRecords);
   const drives = [
     bootImage(
       makeDisk([
-        ["HORTON.COM", hortonBytes],
+        ["HC.COM", hortonBytes],
         ["KEEP.TXT", keepBytes],
         ["MULTI.BIN", multiBytes],
       ]),
@@ -542,11 +542,11 @@ hortonBytes.copy(hortonRecords);
 
     machine.beginDelete();
     machine.confirmDelete("y", "File deleted; panel refreshed.");
-    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HORTON.COM", "KEEP.TXT"]);
+    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HC.COM", "KEEP.TXT"]);
     assert.equal(countDirectoryName(machine.cpu, 0, "MULTI.BIN"), 0, "all directory extents were removed");
     assert.equal(freeBytesFrom(machine.cpu, 0) - freeBefore, 9 * 2048, "all nine blocks were returned");
     assert.deepEqual(readFileFrom(machine.cpu, 0, "KEEP.TXT"), storedRecords(keepBytes));
-    assert.deepEqual(readFileFrom(machine.cpu, 0, "HORTON.COM"), hortonRecords);
+    assert.deepEqual(readFileFrom(machine.cpu, 0, "HC.COM"), hortonRecords);
   } finally {
     machine.free();
   }
@@ -561,7 +561,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
   const drives = [
     bootImage(
       makeDisk([
-        ["HORTON.COM", hortonBytes],
+        ["HC.COM", hortonBytes],
         ...(direction === "A-to-B" ? [[sourceName, sourceBytes]] : [["KEEP.TXT", keepBytes]]),
       ]),
     ),
@@ -584,7 +584,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
     assert.ok(!fileNamesFrom(machine.cpu, sourceDrive).includes(sourceName), `${direction}: source is deleted after success`);
     assert.deepEqual(readFileFrom(machine.cpu, destinationDrive, sourceName), sourceBytes, `${direction}: destination records match`);
     assert.ok(!fileNamesFrom(machine.cpu, destinationDrive).includes("HCOPY.$$$"));
-    assert.deepEqual(readFileFrom(machine.cpu, 0, "HORTON.COM"), hortonRecords);
+    assert.deepEqual(readFileFrom(machine.cpu, 0, "HC.COM"), hortonRecords);
     if (direction === "B-to-A") assert.deepEqual(readFileFrom(machine.cpu, 0, "KEEP.TXT"), storedRecords(keepBytes));
   } finally {
     machine.free();
@@ -594,7 +594,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
 // The same-drive move guard and destination collision leave every user file intact.
 {
   const drives = [
-    bootImage(makeDisk([["HORTON.COM", hortonBytes], ["SOURCE.BIN", Buffer.from([1, 2, 3])]])),
+    bootImage(makeDisk([["HC.COM", hortonBytes], ["SOURCE.BIN", Buffer.from([1, 2, 3])]])),
     makeDisk(),
     makeDisk(),
     makeDisk(),
@@ -633,7 +633,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
   const source = ascii("KEEP SOURCE AFTER COLLISION\r\n\x1a");
   const destination = ascii("KEEP EXISTING TARGET\r\n\x1a");
   const drives = [
-    bootImage(makeDisk([["HORTON.COM", hortonBytes], ["COLLIDE.TXT", source]])),
+    bootImage(makeDisk([["HC.COM", hortonBytes], ["COLLIDE.TXT", source]])),
     makeDisk([["COLLIDE.TXT", destination]]),
     makeDisk(),
     makeDisk(),
@@ -646,7 +646,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
     machine.confirmMove("Destination already exists; Horton will not overwrite it.");
     assert.deepEqual(readFileFrom(machine.cpu, 0, "COLLIDE.TXT"), storedRecords(source));
     assert.deepEqual(readFileFrom(machine.cpu, 1, "COLLIDE.TXT"), storedRecords(destination));
-    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HORTON.COM", "COLLIDE.TXT"]);
+    assert.deepEqual(fileNamesFrom(machine.cpu, 0), ["HC.COM", "COLLIDE.TXT"]);
     assert.deepEqual(fileNamesFrom(machine.cpu, 1), ["COLLIDE.TXT"]);
   } finally {
     machine.free();
@@ -658,7 +658,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
 {
   const source = Buffer.alloc(17 * 128, 0xa5);
   const drives = [
-    bootImage(makeDisk([["HORTON.COM", hortonBytes], ["SOURCE.BIN", source]])),
+    bootImage(makeDisk([["HC.COM", hortonBytes], ["SOURCE.BIN", source]])),
     makeOneBlockFreeDisk(),
     makeDisk(),
     makeDisk(),
@@ -690,7 +690,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
 {
   const source = ascii("READ ONLY SOURCE SURVIVES\r\n\x1a");
   const sourceImage = setReadOnlyAttribute(
-    makeDisk([["HORTON.COM", hortonBytes], ["READONLY.TXT", source]]),
+    makeDisk([["HC.COM", hortonBytes], ["READONLY.TXT", source]]),
     "READONLY.TXT",
   );
   const drives = [
@@ -723,7 +723,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
     assert.deepEqual(readFileFrom(machine.cpu, 1, "READONLY.TXT"), expected);
     assert.equal(fileReadOnlyFrom(machine.cpu, 0, "READONLY.TXT"), true);
     assert.equal(fileReadOnlyFrom(machine.cpu, 1, "READONLY.TXT"), true);
-    assert.deepEqual(readFileFrom(machine.cpu, 0, "HORTON.COM"), hortonRecords);
+    assert.deepEqual(readFileFrom(machine.cpu, 0, "HC.COM"), hortonRecords);
     assert.ok(!fileNamesFrom(machine.cpu, 1).includes("HCOPY.$$$"));
   } finally {
     machine.free();
@@ -733,7 +733,7 @@ for (const direction of ["A-to-B", "B-to-A"]) {
 {
   const source = ascii("DIRECTORY FULL MUST NOT REMOVE SOURCE\r\n\x1a");
   const drives = [
-    bootImage(makeDisk([["HORTON.COM", hortonBytes], ["SOURCE.TXT", source]])),
+    bootImage(makeDisk([["HC.COM", hortonBytes], ["SOURCE.TXT", source]])),
     makeFullDirectoryDisk(),
     makeDisk(),
     makeDisk(),

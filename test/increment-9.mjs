@@ -27,7 +27,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 });
 assert.equal(systemBuild.descriptor.residentProfile, "triptych-cpu-v0.1-2m-n04");
 assert.equal(systemBuild.descriptor.configuredCount, 4);
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 
 function makeDisk(files = []) {
   const disk = CpmDisk.create_two_mib();
@@ -53,7 +53,7 @@ const namedFiles = (prefix) =>
   ]);
 const initialDrives = [
   bootImage(makeDisk([
-    ["HORTON.COM", hortonBytes],
+    ["HC.COM", hortonBytes],
     ...namedFiles("A"),
   ])),
   makeDisk(namedFiles("B")),
@@ -155,7 +155,7 @@ try {
   for (let drive = 0; drive < 4; drive += 1)
     cpu.install_drive(drive, initialDrives[drive], true);
   waitPrompt("A");
-  send(ascii("A:HORTON\r"), "launch HORTON from A:");
+  send(ascii("A:HC\r"), "launch HORTON from A:");
   waitFor("initial panels", (fresh) => fresh.includes(ascii("Q quit")));
   assert.ok(terminal.text().includes("A: *.*"));
   assert.ok(terminal.text().includes("B: *.*"));

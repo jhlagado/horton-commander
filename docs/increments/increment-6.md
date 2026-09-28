@@ -49,7 +49,7 @@ transient stack's 48-byte reserved region had a lowest changed canary at
 that point remained unchanged, and the adjacent 16-byte CCP guard stayed
 intact. The 64-byte BDOS stack's lowest changed canary was `0xF9ED`, 16 bytes
 below its top at `0xF9FD`, leaving 48 bytes below the changed range untouched.
-SP samples were taken in 512-instruction slices and classified by stack
+SP samples were taken in 128-instruction slices and classified by stack
 address; the persistent canaries retain evidence of stack writes between
 samples. These are workload measurements for the tested copy path, not a proof
 that every possible call sequence has the same high-water mark.

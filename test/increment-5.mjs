@@ -29,7 +29,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 assert.equal(systemBuild.descriptor.residentProfile, profileId);
 assert.equal(systemBuild.descriptor.configuredCount, 4);
 
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 const editBytes = await readFile(
   resolve(triptychRoot, "third_party/edit/EDIT.COM"),
 );
@@ -78,7 +78,7 @@ function createMachine({
 } = {}) {
   const aImage = bootImage(
     makeDisk([
-      ["HORTON.COM", hortonBytes],
+      ["HC.COM", hortonBytes],
       ["EDIT.COM", editBytes],
       ["ANOTE.NU", ascii("A drive stays read only\r\n\x1a")],
     ]),
@@ -132,9 +132,19 @@ function createMachine({
       fresh.includes(ascii("Q quit")), start);
   }
 
+  // The prompt is printed through BDOS console output, which also polls the
+  // keyboard. Let that output finish before queuing the selection key.
+  function settlePromptOutput() {
+    for (let slice = 0; slice < 4; slice += 1) {
+      const reason = cpu.run_slice(20_000, 300_000);
+      drain();
+      assert.notEqual(reason, 4, "CPU halted while settling prompt output");
+    }
+  }
+
   function launch() {
     waitPrompt("A");
-    send(ascii("A:HORTON\r"), "launch HORTON");
+    send(ascii("A:HC\r"), "launch HORTON");
     waitPanel("Horton panel appears");
     return terminal.text();
   }
@@ -170,6 +180,7 @@ function createMachine({
     waitFor,
     waitPrompt,
     waitPanel,
+    settlePromptOutput,
     waitResumePrompt,
     confirmResume,
     launch,
@@ -192,12 +203,17 @@ function crc16CcittFalse(bytes) {
   return crc;
 }
 
-function makeSessionRecord({ leftName = null, rightName = null, kind = 1 } = {}) {
+function makeSessionRecord({
+  leftName = null,
+  rightName = null,
+  kind = 1,
+  activeRight = false,
+} = {}) {
   const record = Buffer.alloc(128, 0);
   record.write("HORTONRS", 0, "ascii");
   record[8] = 1;
   record[9] = 128;
-  record[10] = 0;
+  record[10] = activeRight ? 1 : 0;
   record[11] = 0;
   record[12] = 0;
   record[13] = 1;
@@ -221,14 +237,22 @@ const measurements = { scenarios: [] };
     machine.send([9], "activate the B: panel");
     machine.waitPanel("B: panel becomes active");
     const handoffAt = machine.transcript().length;
-    machine.send(ascii("e"), "start Edit handoff");
+    machine.send(ascii("!"), "start the explicit CCP command handoff");
+    machine.waitFor("bounded command prompt", (fresh) =>
+      fresh.includes(ascii("CCP command, up to 64 chars")),
+    );
+    machine.send(ascii("A:EDIT INPUT.NU"), "enter the Edit command at the prompt");
+    machine.waitFor("Edit command echoes", (fresh) =>
+      fresh.includes(ascii("A:EDIT INPUT.NU")),
+    );
+    machine.send([13], "accept the Edit command for CCP");
     machine.waitPrompt("A", "Edit handoff returns to CCP");
     const handoff = machine.transcript().subarray(handoffAt).toString("latin1");
     assert.ok(handoff.includes("Session saved to B:HORTON.RSM."), handoff);
     assert.ok(handoff.includes("B:"), handoff);
     assert.ok(handoff.includes("A:EDIT INPUT.NU"), handoff);
     assert.ok(handoff.includes("\r\nA:\r\n"), handoff);
-    assert.ok(handoff.includes("A:HORTON /R"), handoff);
+    assert.ok(handoff.includes("A:HC /R"), handoff);
     assert.deepEqual(machine.fileNames(1).sort(), ["HORTON.RSM", "INPUT.NU"]);
     const record = machine.fileBytes(1, "HORTON.RSM");
     assert.equal(record.length, 128);
@@ -240,11 +264,11 @@ const measurements = { scenarios: [] };
     assert.equal(record[13], 1, "left panel A: saved");
     assert.equal(record[14], 2, "right panel B: saved");
     assert.equal(record[15], 3, "both panel selections saved");
-    assert.equal(record.subarray(16, 24).toString("ascii"), "HORTON  ");
+    assert.equal(record.subarray(16, 24).toString("ascii"), "HC      ");
     assert.equal(record.subarray(24, 27).toString("ascii"), "COM");
     assert.equal(record.subarray(27, 35).toString("ascii"), "INPUT   ");
     assert.equal(record.subarray(35, 38).toString("ascii"), "NU ");
-    assert.equal(record[38], 1, "editor handoff kind saved");
+    assert.equal(record[38], 2, "external command handoff kind saved");
     assert.equal(record.readUInt16LE(126), crc16CcittFalse(record.subarray(0, 126)));
 
     machine.runCommand("B:", "B");
@@ -265,7 +289,7 @@ const measurements = { scenarios: [] };
     assert.ok(machine.fileBytes(1, "INPUT.NU").toString("ascii").startsWith("x"));
 
     const resumeAt = machine.transcript().length;
-    machine.send(ascii("A:HORTON /R\r"), "explicitly resume the saved session");
+    machine.send(ascii("A:HC /R\r"), "explicitly resume the saved session");
     machine.waitResumePrompt();
     const summary = machine.terminal.text();
     assert.ok(summary.includes("Left panel, drive A:"), summary);
@@ -294,7 +318,7 @@ const measurements = { scenarios: [] };
     );
     machine.send(ascii("A:\r"), "restore the saved CCP drive explicitly");
     machine.waitPrompt("A", "CCP selects the saved default drive");
-    machine.send(ascii("A:HORTON /R\r"), "resume after restoring CCP drive");
+    machine.send(ascii("A:HC /R\r"), "resume after restoring CCP drive");
     machine.waitResumePrompt();
     machine.confirmResume();
     machine.send(ascii("q"), "quit after the explicit drive restoration");
@@ -320,9 +344,9 @@ const measurements = { scenarios: [] };
   try {
     machine.waitPrompt("A");
     const start = machine.transcript().length;
-    machine.send(ascii("A:HORTON /R EXTRA\r"), "request resume with a trailing argument");
+    machine.send(ascii("A:HC /R EXTRA\r"), "request resume with a trailing argument");
     machine.waitFor("malformed command tail shows usage", (fresh) =>
-      fresh.includes(ascii("Usage: HORTON or HORTON /R")), start);
+      fresh.includes(ascii("Usage: HC or HC /R")), start);
     machine.waitPrompt("A", "malformed command tail returns to CCP");
     assert.ok(!machine.fileNames(1).includes("HORTON.RSM"));
     measurements.scenarios.push({ name: "malformed resume command tail", rejected: true });
@@ -346,22 +370,22 @@ const measurements = { scenarios: [] };
     machine.send([13], "accept CCP command");
     machine.waitPrompt("A", "command handoff returns to CCP");
     const output = machine.transcript().toString("latin1");
-    assert.ok(output.includes("\nA:\r\nA:HORTON /R"), output.slice(-1000));
-    assert.ok(output.includes("A:HORTON /R"), output.slice(-1000));
+    assert.ok(output.includes("\nA:\r\nA:HC /R"), output.slice(-1000));
+    assert.ok(output.includes("A:HC /R"), output.slice(-1000));
     assert.ok(machine.fileNames(1).includes("HORTON.RSM"));
 
     machine.send(ascii("DIR\r"), "run the displayed DIR command at CCP");
     machine.waitFor("DIR lists the files", (fresh) =>
-      fresh.includes(ascii("HORTON   COM")) &&
+      fresh.includes(ascii("HC       COM")) &&
       /\r\nA>\s*$/.test(fresh.toString("latin1")),
     );
 
-    machine.send(ascii("A:HORTON\r"), "ordinary launch with a saved session present");
+    machine.send(ascii("A:HC\r"), "ordinary launch with a saved session present");
     machine.waitPanel("normal launch starts a fresh panel without prompting");
     assert.ok(machine.fileNames(1).includes("HORTON.RSM"));
     machine.send(ascii("q"), "quit fresh Horton");
     machine.waitPrompt("A");
-    machine.send(ascii("A:HORTON /R\r"), "resume only on explicit /R");
+    machine.send(ascii("A:HC /R\r"), "resume only on explicit /R");
     machine.waitResumePrompt();
     machine.send([27], "cancel saved session confirmation");
     machine.waitPrompt("A", "cancel returns to CCP and keeps the record");
@@ -398,8 +422,9 @@ const measurements = { scenarios: [] };
     machine.launch();
     machine.send(ascii("s"), "open left panel drive selector");
     machine.waitFor("left drive selector prompt", (fresh) =>
-      fresh.includes(ascii("Select drive A-D")),
+      fresh.includes(ascii("Select drive A-D")) && fresh.includes(ascii("Q quit")),
     );
+    machine.settlePromptOutput();
     machine.send(ascii("C"), "select C: for the left panel");
     machine.waitPanel("left panel selects C:");
     machine.send([9], "activate right panel");
@@ -408,6 +433,7 @@ const measurements = { scenarios: [] };
     machine.waitFor("right drive selector prompt", (fresh) =>
       fresh.includes(ascii("Select drive A-D")),
     );
+    machine.settlePromptOutput();
     machine.send(ascii("D"), "select D: for the right panel");
     machine.waitPanel("right panel selects D:");
     assert.ok(machine.terminal.text().includes("C: *.*"));
@@ -437,7 +463,7 @@ const measurements = { scenarios: [] };
     machine.send(ascii(`${command}\r`), "remove an earlier D: entry before resume");
     machine.waitPrompt("A", "directory-changing command returns to CCP");
     assert.ok(!machine.fileNames(3).includes("D0000000.TXT"));
-    machine.send(ascii("A:HORTON /R\r"), "resume saved C:/D: panels after directory change");
+    machine.send(ascii("A:HC /R\r"), "resume saved C:/D: panels after directory change");
     machine.waitResumePrompt();
     const resumeAt = machine.transcript().length;
     machine.send(ascii("y"), "confirm C:/D: session");
@@ -468,7 +494,13 @@ const measurements = { scenarios: [] };
     machine.waitPanel("B: panel active");
     const before = machine.fileBytes(1, "HORTON.TMP");
     const start = machine.transcript().length;
-    machine.send(ascii("e"), "attempt handoff with a reserved-name collision");
+    machine.send(ascii("!"), "attempt a command handoff with a reserved-name collision");
+    machine.waitFor("bounded command prompt", (fresh) =>
+      fresh.includes(ascii("CCP command, up to 64 chars")),
+    );
+    machine.send(ascii("DIR"), "enter a command before collision check");
+    machine.waitFor("command echoes", (fresh) => fresh.includes(ascii("DIR")));
+    machine.send([13], "accept command for the collision check");
     machine.waitFor("collision is reported", (fresh) =>
       fresh.includes(ascii("Handoff refused; remove B:HORTON.RSM or B:HORTON.TMP")),
       start,
@@ -492,7 +524,7 @@ const measurements = { scenarios: [] };
   try {
     machine.waitPrompt("A");
     const start = machine.transcript().length;
-    machine.send(ascii("A:HORTON /R\r"), "request resume with a staged file present");
+    machine.send(ascii("A:HC /R\r"), "request resume with a staged file present");
     machine.waitFor("staged file blocks resume", (fresh) =>
       fresh.includes(ascii("Incomplete B:HORTON.TMP; remove it at CCP before handoff.")), start);
     machine.waitPrompt("A", "staged file rejection returns to CCP");
@@ -518,7 +550,7 @@ const measurements = { scenarios: [] };
   try {
     machine.waitPrompt("A");
     const start = machine.transcript().length;
-    machine.send(ascii("A:HORTON /R\r"), "request resume of a multi-extent session file");
+    machine.send(ascii("A:HC /R\r"), "request resume of a multi-extent session file");
     machine.waitFor("multi-extent session is refused", (fresh) =>
       fresh.includes(ascii("Saved session is invalid; it has been left untouched.")), start);
     machine.waitPrompt("A", "invalid multi-extent session returns to CCP");
@@ -535,20 +567,22 @@ const measurements = { scenarios: [] };
 
 // A missing saved filename falls back to the first entry on that panel.
 {
-  const missing = makeSessionRecord({ leftName: "GONE    TXT" });
+  const missing = makeSessionRecord({ rightName: "GONE    TXT", activeRight: true });
   const machine = createMachine({ bExtra: [["HORTON.RSM", missing]] });
   try {
     machine.waitPrompt("A");
-    machine.send(ascii("A:HORTON /R\r"), "resume a session with a missing selection");
+    machine.send(ascii("A:HC /R\r"), "resume a session with a missing selection");
     machine.waitResumePrompt();
     machine.send(ascii("y"), "confirm missing-name session");
     machine.waitFor("missing selection is reported", (fresh) =>
       fresh.includes(ascii("File is no longer present on this drive.")) &&
       fresh.includes(ascii("Q quit")));
-    assert.ok(machine.transcript().toString("latin1").includes("\u001b[7mHORTON  .COM"));
+    machine.settlePromptOutput();
+    assert.ok(machine.transcript().toString("latin1").includes("\u001b[7mINPUT   .NU"));
     assert.equal(machine.fileNames(1).includes("HORTON.RSM"), false);
     machine.send(ascii("x"), "dismiss missing-selection notice");
     machine.waitPanel("panel remains usable after missing selection");
+    machine.settlePromptOutput();
     machine.send(ascii("q"), "quit the resumed session");
     machine.waitPrompt("A");
     measurements.scenarios.push({ name: "missing saved selection", fallsBackAndReports: true });
@@ -576,7 +610,7 @@ const measurements = { scenarios: [] };
   try {
     machine.waitPrompt("A");
     const start = machine.transcript().length;
-    machine.send(ascii("A:HORTON /R\r"), "request resume of an invalid session");
+    machine.send(ascii("A:HC /R\r"), "request resume of an invalid session");
     machine.waitFor("invalid record is refused", (fresh) =>
       fresh.includes(ascii("Saved session is invalid; it has been left untouched.")),
       start,

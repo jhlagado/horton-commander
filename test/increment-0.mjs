@@ -32,7 +32,7 @@ const editManifest = JSON.parse(
 const editBytes = await readFile(
   resolve(triptychRoot, "third_party/edit/EDIT.COM"),
 );
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 
 assert.equal(editManifest.artifact, "EDIT.COM");
 assert.equal(editManifest.version, "0.2.0");
@@ -56,7 +56,7 @@ function makeDisk(files = []) {
 }
 
 const aBytes = makeDisk([
-  ["HORTON.COM", hortonBytes],
+  ["HC.COM", hortonBytes],
   ["EDIT.COM", editBytes],
   ["ANOTE.NU", ascii("A DRIVE SENTINEL: READ ONLY\r\n\x1a")],
 ]);
@@ -131,7 +131,7 @@ function enterCommand(command, drive, requiredOutput = undefined) {
 
 function launchHorton() {
   const start = transcript.length;
-  send(ascii("A:HORTON\r"), "queue HORTON launch");
+  send(ascii("A:HC\r"), "queue HORTON launch");
   waitFor("HORTON completes the panel screen", (fresh) =>
     fresh.includes(ascii("HORTON COMMANDER")) && fresh.includes(ascii("Q quit")),
     start,

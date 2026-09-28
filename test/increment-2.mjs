@@ -23,7 +23,7 @@ const { TriptychCpu, CpmDisk } = createRequire(import.meta.url)(
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const ascii = (value) => Buffer.from(value, "ascii");
 const debugMap = JSON.parse(
-  await readFile(resolve(root, "dist/HORTON.d8.json"), "utf8"),
+  await readFile(resolve(root, "dist/HC.d8.json"), "utf8"),
 );
 const cacheLeft = debugMap.files["main.asm"].symbols.find(
   (symbol) => symbol.name === "CACHEL",
@@ -40,7 +40,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 assert.equal(systemBuild.descriptor.residentProfile, profileId);
 assert.equal(systemBuild.descriptor.configuredCount, 4);
 
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 
 function makeDisk(files = []) {
   const disk = CpmDisk.create_two_mib();
@@ -79,7 +79,7 @@ function makeLongText() {
 
 const aImage = makeDisk([
   ["A_NOTE.TXT", ascii("A DRIVE TEXT\r\n\x1a")],
-  ["HORTON.COM", hortonBytes],
+  ["HC.COM", hortonBytes],
 ]);
 const bImage = makeDisk([["B_NOTE.TXT", ascii("B DRIVE TEXT\r\n\x1a")]]);
 const cImage = makeDisk([["C_LONG.TXT", makeLongText()]]);
@@ -186,7 +186,7 @@ try {
   cpu.install_drive(2, cImage, true);
   cpu.install_drive(3, dImage, true);
   waitPrompt("A");
-  send(ascii("A:HORTON\r"), "launch HORTON");
+  send(ascii("A:HC\r"), "launch HORTON");
   waitFor("initial panels", (fresh) => fresh.includes(ascii("Q quit")));
   assert.ok(terminal.text().includes("A: *.*"));
   assert.ok(terminal.text().includes("B: *.*"));

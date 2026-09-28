@@ -1,6 +1,7 @@
 # Increment 11: read-only hexadecimal view
 
-Status: implemented and under review.
+Status: accepted after the full `npm run check` suite passed and the
+independent Astra review found no blockers.
 
 Press `H` in the existing text viewer to switch to hexadecimal mode. Press `T`
 to return to text at the same record position. Each hex page shows sixteen

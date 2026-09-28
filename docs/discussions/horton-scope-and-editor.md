@@ -33,11 +33,11 @@ without inheriting their full command set or key assignments.
 | Feature | Fit for Horton | Current view |
 | --- | --- | --- |
 | Two panels, active selection and drive choice | Core. This is the main improvement over working from the CCP prompt. | Implemented for the assumed A:–D: setup. The square-bracket drive cycling feels awkward. A drive-selection command on `S` is a reasonable candidate, with `D` left for Delete. |
-| File size in the panel or status line | High value and low conceptual cost. | Accepted in increment 10 as a selected-file record count in the status line. BDOS function 35 reports logical 128-byte records; CP/M's final record can be padded, so the count does not claim an exact byte length. |
+| File size in the panel or status line | High value and low conceptual cost. | Increment 10 shows the selected file's logical 128-byte record count in the status line. Increment 13 adds an approximate rounded-up KiB value beside each visible filename. CP/M's final record can be padded, and its BDOS interface does not provide a portable physical-sector size. |
 | Drive capacity and free space | Useful context when copying files or deciding which disk to use. | Consider after the file-size display. Calculate from the selected drive's public disk-parameter data. Do not assume that logical records map to a fixed physical sector size across every provider. |
 | File date | Low fit on the current CP/M 2.2 target. | The ordinary directory entry has no date field. Leave the date out unless a specific timestamp extension becomes part of the target contract. |
 | Read-only ASCII view | Core utility for source, notes and text files. | Implemented. The current view displays CR/LF bytes as spaces, so preserving line breaks is a worthwhile viewer refinement. |
-| Read-only hexadecimal view | Strong next viewer addition. It makes binary files and machine-code data inspectable. | Start with a bounded, paged hex dump that includes an offset and printable-character column. Editing bytes is a separate feature with cursor, validation and write-safety questions. |
+| Read-only hexadecimal view | Strong viewer addition. It makes binary files and machine-code data inspectable. | Implemented in increment 11 as a bounded, paged hex dump with offsets and a printable-character column. Editing bytes is a separate feature with cursor, validation and write-safety questions. |
 | Copy, rename, move and delete | Core file work. | Implemented with single-file selection and explicit safety rules. Preserve the existing checks and recovery behavior as other features are added. |
 | Multi-file selection and wildcard operations | Useful when managing many files, but bulk changes raise the cost of mistakes. | Defer until the selection transitions and bulk-operation failure handling are specified and tested. |
 | Quick filename search | Useful when a drive has many entries. | Consider a small incremental search before full content search. The current target may contain 1,024 directory entries, so finding a visible name can save substantial navigation. |
@@ -47,11 +47,11 @@ without inheriting their full command set or key assignments.
 | External tools and command menu | Potentially valuable because it brings utilities into one place. | Defer a broad menu until the return path is usable. Prefer a small number of well-defined actions over pretending arbitrary COM programs can act like child processes. |
 | Disk format, disk copy and other media operations | Useful in some environments, but destructive and dependent on disk geometry. | Keep out of the initial file manager. Use separately qualified utilities and explicit platform services if this becomes a real need. |
 
-The first size display reports the exact CP/M record count in the status line.
-One record is 128 bytes, and the count gives a useful scale while respecting
-padding in the final record. A sector estimate needs the active disk profile's
-geometry. A date column would imply metadata that the current directory format
-does not provide.
+The status line reports the exact CP/M logical record count for the selected
+file. Increment 13 adds a rounded-up KiB estimate beside visible filenames.
+One record is 128 bytes, and the final record may contain padding. A physical
+sector estimate needs the active disk profile's geometry; a date column would
+imply metadata that the current directory format does not provide.
 
 ## Viewer and editor direction
 
@@ -65,33 +65,34 @@ inspection feature into an underspecified editor.
 Launching `EDIT.COM` as a separate transient returns through the CCP. That
 breaks the natural expectation that Horton will still be present when editing
 ends, even when a session file can restore the selection after a relaunch.
-Embedding an editor mode in `HORTON.COM` would avoid that process boundary.
+Increment 12 tests an in-process editor mode in `HORTON.COM` to avoid that
+process boundary; the combined build remains private while distribution terms
+are reviewed.
 
-Edit already has an extracted, statically linked editor engine. Its document,
-command, session, layout and presentation modules are called synchronously.
-The [engine interface](https://github.com/jhlagado/edit/blob/main/docs/design/editor-engine-interface.md)
-defines that boundary. The application adapter handles keyboard input,
-prompts, filenames, file transactions and entry or exit. Horton could enter an
-editor mode, let it take over the screen, then redraw its panels when the
-editor returns. Both `EDIT.COM` and `HORTON.COM` can link the same source
-modules into their own executable. CP/M has no runtime library loader here,
-so each COM file would contain its own copy of the linked code.
+Edit organizes its editor as statically linked document, session, navigation,
+layout, presentation, input and CP/M load/save modules. Its
+[engine interface](https://github.com/jhlagado/edit/blob/main/docs/design/editor-engine-interface.md)
+documents routine and memory contracts, but this is not a released binary ABI
+or a ready-made bounded-screen adapter. Both applications can eventually
+assemble common source into their own executable; CP/M has no runtime library
+loader, so each `.COM` file contains its own linked copy.
 
-Start with an integrated editing experiment before packaging a shared library.
-Copy the engine modules into Horton and leave Edit's standalone shell, file
-transactions and command-line behaviour separate. Keep the module boundary
-intact so the next step can make those same modules a pinned source dependency
-of both builds. This proves the screen and return behaviour quickly without
-forking unrelated parts of `EDIT.COM`. A separate editor-core repository can
-wait until another consumer or a release need justifies it.
+The in-process experiment is implemented in increment 12. It statically links
+pinned Edit 0.2.0 source into Horton, including its editor loop, display,
+document operations and CP/M load/save code. Horton adapts the entry and return
+to its panel state; standalone Edit keeps its own program shell. The copied
+source is not yet a clean split between a common editing core and each
+application's input, display and file adapter. A later step should define that
+boundary before making a source dependency of both builds, then resolve the
+license and distribution question.
 
-This still needs a real memory and build check. The current [engine account](https://github.com/jhlagado/edit/blob/main/docs/design/editor-engine-interface.md#memory-budget-and-performance-gates)
-uses a 47,104-byte text arena, reserves a 3,072-byte stack and accounts for
-490 of 512 bytes of fixed workspace. Those are Edit's current allocations,
-not a measurement of a combined Horton build. Integration requires one CP/M
-transient memory map that accounts for both programs' code, workspace, editor
-buffer and stack. Build and exercise the combined binary before choosing the
-editor size limit or claiming the integration is practical.
+Increment 12 has already built and qualified the combined Horton executable.
+Its editor code is 5,522 bytes, its workspace is 512 bytes, its text arena is
+32 KiB, and its private stack is 3 KiB; the increment record gives the full
+TPA map and tests. Edit's newer [engine account](https://github.com/jhlagado/edit/blob/main/docs/design/editor-engine-interface.md#memory-budget-and-performance-gates)
+is a comparison, not a drop-in Horton profile: it uses a 47,104-byte text
+arena and 490 of 512 workspace bytes. Any source change or larger Horton edit
+profile needs a fresh integrated build and memory map.
 
 There is also a distribution decision to make before sharing source in a
 release. Edit is GPL-3.0-or-later, while Horton currently has no top-level
@@ -101,17 +102,9 @@ shipping a combined executable.
 
 ## Proposed order for the next roadmap
 
-1. Add a read-only hexadecimal mode beside the existing ASCII viewer. Keep the
-   input paging bounded and prove files that cross extent boundaries.
-2. Copy the editor-engine modules into Horton for an in-process prototype.
-   Measure the combined COM and transient-memory use and test return to the
-   same panel state.
-3. Decide whether both repositories can build from the same pinned source
-   modules. Resolve the license question before distribution.
-4. Reassess multi-select, search, compare and tool menus after those flows
-   have real use evidence. Treat format and disk-copy operations as separate
-   work.
-
-This order is a proposal, not a replacement for the accepted roadmap. The next
-roadmap should turn only the chosen items into increments, with a measurable
-acceptance gate for each one.
+The [next-phase roadmap](../roadmap-next.md) now starts by mapping `E` to the
+existing in-process editor, then defining a quick-edit profile from actual
+use. It delays source extraction until Horton and Edit have a stable common
+boundary, and treats automatic command return as a separate CP/M capability
+to investigate. Free-space display, search, multi-select and utility menus
+remain later choices rather than part of the editor milestone.

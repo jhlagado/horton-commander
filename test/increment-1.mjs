@@ -29,7 +29,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 assert.equal(systemBuild.descriptor.residentProfile, profileId);
 assert.equal(systemBuild.descriptor.configuredCount, 4);
 
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 const directoryOffset = 16_384;
 const directoryEntries = 1_024;
 const entryBytes = 32;
@@ -48,7 +48,7 @@ function makeDisk(files = []) {
 function makeFullDirectoryDisk() {
   const disk = CpmDisk.create_two_mib();
   try {
-    disk.add_import("HORTON.COM", Uint8Array.from(hortonBytes));
+    disk.add_import("HC.COM", Uint8Array.from(hortonBytes));
     const multiExtent = Buffer.alloc(17 * 1024 + 1);
     for (let index = 0; index < multiExtent.length; index += 1)
       multiExtent[index] = index & 0xff;
@@ -64,10 +64,31 @@ function makeFullDirectoryDisk() {
       const offset = directoryOffset + index * entryBytes;
       if (image[offset] !== 0xe5) occupied.push(index);
     }
-    assert.deepEqual(occupied, [0, 1, 2], "initial files use three extents");
-    for (let index = 0; index < 1_021; index += 1) {
+    const recordsPerExtent = 128;
+    const bytesPerRecord = 128;
+    const hortonExtentCount = Math.ceil(
+      hortonBytes.length / (recordsPerExtent * bytesPerRecord),
+    );
+    const multiExtentCount = Math.ceil(
+      multiExtent.length / (recordsPerExtent * bytesPerRecord),
+    );
+    const initialExtentNumbers = [
+      ...Array.from({ length: hortonExtentCount }, (_, index) => index),
+      ...Array.from({ length: multiExtentCount }, (_, index) => index),
+    ];
+    assert.deepEqual(
+      occupied,
+      Array.from({ length: initialExtentNumbers.length }, (_, index) => index),
+      "initial file extents occupy consecutive directory entries",
+    );
+    for (let index = 0; index < initialExtentNumbers.length; index += 1) {
+      const offset = directoryOffset + index * entryBytes;
+      assert.equal(image[offset + 12], initialExtentNumbers[index]);
+    }
+    const emptyFileCount = directoryEntries - initialExtentNumbers.length;
+    for (let index = 0; index < emptyFileCount; index += 1) {
       const base = `F${String(index).padStart(7, "0")}`;
-      const entryIndex = index + 3;
+      const entryIndex = index + initialExtentNumbers.length;
       const offset = directoryOffset + entryIndex * entryBytes;
       image.fill(0, offset, offset + entryBytes);
       image[offset] = 0;
@@ -82,23 +103,20 @@ function makeFullDirectoryDisk() {
       if (image[offset] !== 0xe5) filled.push(index);
     }
     assert.equal(filled.length, directoryEntries, "all directory slots are occupied");
-    assert.equal(image[directoryOffset + 12], 0);
-    assert.equal(image[directoryOffset + entryBytes + 12], 0);
-    assert.equal(image[directoryOffset + 2 * entryBytes + 12], 1);
     const validated = new CpmDisk(Uint8Array.from(image));
     try {
       assert.equal(validated.free_directory_entries(), 0);
-      assert.equal(validated.file_names().length, 1_023);
+      assert.equal(validated.file_names().length, 2 + emptyFileCount);
     } finally {
       validated.free();
     }
-    return { image, multiExtent };
+    return { image, multiExtent, emptyFileCount };
   } finally {
     disk.free();
   }
 }
 
-const { image: aImage, multiExtent } = makeFullDirectoryDisk();
+const { image: aImage, multiExtent, emptyFileCount } = makeFullDirectoryDisk();
 const bImage = makeDisk();
 const cImage = makeDisk([["C_NOTE.TXT", ascii("C DRIVE MEDIA\r\n\x1a")]]);
 const dImage = makeDisk([["D_NOTE.TXT", ascii("D DRIVE MEDIA\r\n\x1a")]]);
@@ -182,34 +200,34 @@ try {
   cpu.install_drive(2, cImage, true);
   cpu.install_drive(3, dImage, true);
   waitPrompt("A");
-  send(ascii("A:HORTON\r"), "launch HORTON from A:");
+  send(ascii("A:HC\r"), "launch HORTON from A:");
   waitFor("initial complete two-panel listing", (fresh) =>
     fresh.includes(ascii("Q quit")),
   );
 
   let screen = terminal.text();
-  assert.ok(screen.includes("HORTON"));
+  assert.ok(screen.includes("HC"), "the renamed HC.COM entry is visible");
   assert.equal((screen.match(/MULTI/g) ?? []).length, 1, "multi-extent file appears once");
   assert.equal((screen.match(/F0000000/g) ?? []).length, 1);
   const firstRows = panelRows();
   assert.equal(firstRows.length, 18, "screen shows eighteen rows");
   assert.ok(firstRows.every((row) => row.slice(41, 79).trim() === ""), "empty B: is shown normally");
-  assert.notEqual(nameStyle("HORTON") & 4, 0, "selected A: entry is highlighted");
+  assert.notEqual(nameStyle("HC") & 4, 0, "selected A: entry is highlighted");
 
   send([0x1b, 0x5b, 0x42], "move selection down");
   waitScreenUpdate("down-arrow selection redraw");
-  assert.equal(nameStyle("HORTON") & 4, 0, "previous row loses selection highlight");
+  assert.equal(nameStyle("HC") & 4, 0, "previous row loses selection highlight");
   assert.notEqual(nameStyle("MULTI") & 4, 0, "next row receives selection highlight");
   send([0x1b, 0x5b, 0x41], "move selection up");
   waitScreenUpdate("up-arrow selection redraw");
-  assert.notEqual(nameStyle("HORTON") & 4, 0, "up restores the first selection");
+  assert.notEqual(nameStyle("HC") & 4, 0, "up restores the first selection");
 
   send([0x09], "switch to empty B: panel");
   waitScreenUpdate("Tab switches active panel");
-  assert.equal(nameStyle("HORTON") & 4, 0, "inactive panel loses highlight");
+  assert.equal(nameStyle("HC") & 4, 0, "inactive panel loses highlight");
   send([0x09], "switch back to A: panel");
   waitScreenUpdate("Tab switches back to A:");
-  assert.notEqual(nameStyle("HORTON") & 4, 0, "A: keeps its selection");
+  assert.notEqual(nameStyle("HC") & 4, 0, "A: keeps its selection");
 
   let slowestPage = 0;
   const pageMeasurements = [];
@@ -222,15 +240,19 @@ try {
   }
 
   screen = terminal.text();
-  assert.ok(screen.includes("F0001020"), "last first-extent entry is reachable on page 56");
+  const lastEmptyFile = `F${String(emptyFileCount - 1).padStart(7, "0")}`;
+  assert.ok(screen.includes(lastEmptyFile), "last first-extent entry is reachable on page 56");
   const lastRows = panelRows();
   const visibleAEntries = lastRows.filter((row) => row.slice(1, 39).trim() !== "");
-  assert.equal(visibleAEntries.length, 15, "last page contains the fifteen remaining files");
-  assert.notEqual(nameStyle("F0001006") & 4, 0, "selection resets to the first row on a new page");
-  // Page 56 begins at first-extent index 1008: HORTON, MULTI, then F0001006.
-  // The row before the final name should be highlighted because page changes
-  // reset the selection to row zero.
-  assert.ok(screen.includes("F0001006"));
+  const firstNameOnLastPage = `F${String(56 * 18 - 2).padStart(7, "0")}`;
+  assert.equal(
+    visibleAEntries.length,
+    2 + emptyFileCount - 56 * 18,
+    "last page contains the remaining files",
+  );
+  assert.notEqual(nameStyle(firstNameOnLastPage) & 4, 0, "selection resets to the first row on a new page");
+  // Page 56 begins after HC and MULTI, at empty-file index 1006.
+  assert.ok(screen.includes(firstNameOnLastPage));
 
   send(ascii("q"), "quit HORTON");
   waitPrompt("A");
@@ -258,7 +280,7 @@ try {
         directory: {
           slots: directoryEntries,
           occupiedSlots: directoryEntries,
-          firstExtentFiles: 1_023,
+          firstExtentFiles: 2 + emptyFileCount,
           multiExtentRecords: 2,
           emptyPanel: "B",
         },

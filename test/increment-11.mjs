@@ -26,7 +26,7 @@ const systemBuild = await buildTwoMibSystem(triptychRoot, 4, {
 });
 assert.equal(systemBuild.descriptor.residentProfile, profileId);
 assert.equal(systemBuild.descriptor.configuredCount, 4);
-const hortonBytes = await readFile(resolve(root, "dist/HORTON.COM"));
+const hortonBytes = await readFile(resolve(root, "dist/HC.COM"));
 
 function makeDisk(files = []) {
   const disk = CpmDisk.create_two_mib();
@@ -67,7 +67,7 @@ boundaryBytes.set(ascii("EXTENT128"), 128 * 128);
 
 const initialDrives = [
   bootImage(makeDisk([
-    ["HORTON.COM", hortonBytes],
+    ["HC.COM", hortonBytes],
     ["CROSS.BIN", boundaryBytes],
     ["MAKEZERO.COM", zeroFileCom],
   ])),
@@ -153,10 +153,13 @@ function isSelected(fragment) {
 }
 
 function moveDownUntilSelected(fragment) {
+  // Let the launch screen's final BDOS output finish before the first key.
+  pumpSlices(4);
   for (let attempt = 0; attempt < 18; attempt += 1) {
     if (isSelected(fragment)) return;
     send([0x1b, 0x5b, 0x42], `select ${fragment} with Down`);
     waitPanel(`${fragment} selection redraws`);
+    pumpSlices(4);
   }
   assert.fail(`${fragment} became selected within the current page`);
 }
@@ -177,7 +180,7 @@ try {
     Buffer.from(cpu.export_drive_checkpoint(drive)),
   );
 
-  send(ascii("A:HORTON\r"), "launch Horton from the CCP");
+  send(ascii("A:HC\r"), "launch Horton from the CCP");
   waitFor("initial panels", (fresh) => fresh.includes(ascii("Q quit")));
   moveDownUntilSelected("CROSS");
   send([13], "open the selected multi-extent file");
